@@ -26,7 +26,7 @@ int uptime(void);
 int getfilename(int fd, char* buf, int n);
 uint wmap(uint addr, int length, int flags, int fd);
 int wunmap(uint addr);
-uint wremap(uint oldaddr, int oldsize, int newsize, int flags)
+uint wremap(uint oldaddr, int oldsize, int newsize, int flags);
 
 // ulib.c
 int stat(const char*, struct stat*);

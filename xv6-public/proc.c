@@ -39,6 +39,7 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+
 // Must be called with interrupts disabled
 int
 cpuid() {
