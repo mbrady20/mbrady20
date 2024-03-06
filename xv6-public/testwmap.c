@@ -1,6 +1,7 @@
 #include "types.h"
 #include "user.h"
 #include "fcntl.h"
+#include "wmap.h"
 
 #define PGSIZE 4096
 

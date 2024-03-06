@@ -182,9 +182,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_getfilename\
-	_wmap\
-	_wunmap\
-	_wremap\
+	_testwmap\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
