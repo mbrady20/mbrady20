@@ -11,7 +11,7 @@
 #define SUCCESS 0
 
 // for `getpgdirinfo`
-#define MAX_UPAGE_INFO 32
+#define MAX_UPAGE_INFO 32 // this is the maximum number of pages we can expect (this value was in the starter code)
 struct pgdirinfo
 {
     uint n_upages;           // the number of allocated physical pages in the process's user address space
@@ -20,7 +20,7 @@ struct pgdirinfo
 };
 
 // for `getwmapinfo`
-#define MAX_WMMAP_INFO 16 // 16 because this is the maximum number of pages we can expect
+#define MAX_WMMAP_INFO 16 // this is the maximum number of seperate wmap calls we can expect (this value was in the starter code)
 #define MEM_HASH_SIZE 19  // we use 19 because the page size is divisible by 16,0x60000000 = 1610612736 decimal and 1610612736 + 4096n mod 19 is 7	18	10	2	13	5	16	8	0	11	3	14	6	17	9	1	12	4	15 7
 struct wmapinfo
 {
