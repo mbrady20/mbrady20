@@ -208,7 +208,7 @@ int wunmap(uint addr)
   {
     pte_t *pte = walkpgdir(pgdir, addr + (i * PGSIZE), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
     kfree(P2V(PTE_ADDR(*pte)));
-    pte_t *pte = 0;
+    *pte = 0;
   }
 
   removeValue(addr); // it says in the writeup to remove any metadata we stored first ... I don't see a reason we can't do it after as of now.
