@@ -15,8 +15,8 @@
 // } memHashNode;
 
 // Declare hashtable
-memHashNode table[MAX_WMMAP_INFO];
-memHashNode nodePool[MEM_HASH_SIZE];
+memHashNode table[MEM_HASH_SIZE];
+memHashNode nodePool[MAX_WMMAP_INFO];
 int hashInit = -1;
 int poolCounter = 0;
 
@@ -45,12 +45,12 @@ int hash(int key)
   return key % MEM_HASH_SIZE;
 }
 
-static pte_t *walkpgdir(pde_t *pgdir, const void *va, int alloc);
+pte_t *walkpgdir(pde_t *pgdir, const void *va, int alloc);
 int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 
 void initHashTable()
 {
-  for (int i = 0; i < MAX_WMMAP_INFO; i++)
+  for (int i = 0; i < MEM_HASH_SIZE; i++)
   {
     table[i].startAddress = -1; // Use -1 to indicate an empty slot
     table[i].next = 0;
@@ -137,26 +137,6 @@ int removeValue(int startAddress)
   return 1;
 }
 
-// for debugging
-// void printHashTable()
-// {
-//   for (int i = 0; i < MEM_HASH_SIZE; i++)
-//   {
-//     printf(1, "Slot %d: ", i);
-//     if (table[i].startAddress != -1)
-//     {
-//       printf(1, "Address: %d, Pages: %d ", table[i].startAddress, table[i].numPages);
-//       memHashNode *node = table[i].next;
-//       while (node != 0)
-//       {
-//         printf(1, "Address: %d, Pages: %d", node->startAddress, node->numPages);
-//         node = node->next;
-//       }
-//     }
-//     printf("\n");
-//   }
-// }
-
 uint wmap(uint addr, int length, int flags, int fd)
 {
   struct proc *curproc = myproc();
@@ -217,6 +197,37 @@ int wunmap(uint addr)
   return 1;
 }
 
+int getpgdirinfo(struct pgdirinfo *pdinfo)
+{
+  return 0;
+}
+
+int getwmapinfo(struct wmapinfo *wminfo)
+{
+  int pageCount = 0;
+  wminfo->total_mmaps = 0;
+  for (int i = 0; i < MEM_HASH_SIZE; i++)
+  {
+    if (table[i].startAddress != -1)
+    {
+      wminfo->addr[pageCount] = table[i].startAddress;
+      wminfo->length[pageCount] = table[i].numPages * PGSIZE;
+      wminfo->n_loaded_pages[pageCount++] = table[i].numPages;
+      wminfo->total_mmaps += 1;
+      memHashNode *node = table[i].next;
+      while (node != 0)
+      {
+        wminfo->addr[pageCount] = node->startAddress;
+        wminfo->length[pageCount] = node->numPages * PGSIZE;
+        wminfo->n_loaded_pages[pageCount++] = node->numPages;
+        wminfo->total_mmaps += 1;
+        node = node->next;
+      }
+    }
+  }
+  return 0;
+}
+
 int sys_wmap(void)
 {
   // CODE HERE
@@ -240,6 +251,24 @@ int sys_wunmap(void)
 {
   // CODE HERE
   return 0;
+}
+
+int sys_getpgdirinfo(void)
+{
+  struct pgdirinfo *pginfo;
+  if (argptr(0, (void *)&pginfo, sizeof(struct pgdirinfo)) < 0)
+    return -1; // failure
+
+  return getpgdirinfo(pginfo);
+}
+
+int sys_getwmapinfo(void)
+{
+  struct wmapinfo *myMapInfo;
+  if (argptr(0, (void *)&myMapInfo, sizeof(struct wmapinfo)) < 0)
+    return -1; // failure
+
+  return getwmapinfo(myMapInfo);
 }
 
 int sys_fork(void)
