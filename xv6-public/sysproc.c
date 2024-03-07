@@ -45,11 +45,12 @@ int hash(int key)
   return key % MEM_HASH_SIZE;
 }
 
+static pte_t *walkpgdir(pde_t *pgdir, const void *va, int alloc);
 int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 
 void initHashTable()
 {
-  for (int i = 0; i < MEM_HASH_SIZE; i++)
+  for (int i = 0; i < MAX_WMMAP_INFO; i++)
   {
     table[i].startAddress = -1; // Use -1 to indicate an empty slot
     table[i].next = 0;
@@ -114,7 +115,7 @@ int removeValue(int startAddress)
       node->startAddress = -1;
       node->next = 0;
     }
-    return;
+    return 1;
   }
 
   // Traverse the list to find the node with the target value
@@ -126,41 +127,42 @@ int removeValue(int startAddress)
 
   // If the node was not found, return
   if (node == 0)
-    return;
+    return -1;
 
   // Re-link the previous node to skip the node being removed
   if (prev != 0)
   {
     prev->next = node->next;
   }
+  return 1;
 }
 
 // for debugging
-void printHashTable()
-{
-  for (int i = 0; i < MEM_HASH_SIZE; i++)
-  {
-    printf(1, "Slot %d: ", i);
-    if (table[i].startAddress != -1)
-    {
-      printf(1, "Address: %d, Pages: %d ", table[i].startAddress, table[i].numPages);
-      memHashNode *node = table[i].next;
-      while (node != 0)
-      {
-        printf(1, "Address: %d, Pages: %d", node->startAddress, node->numPages);
-        node = node->next;
-      }
-    }
-    printf("\n");
-  }
-}
+// void printHashTable()
+// {
+//   for (int i = 0; i < MEM_HASH_SIZE; i++)
+//   {
+//     printf(1, "Slot %d: ", i);
+//     if (table[i].startAddress != -1)
+//     {
+//       printf(1, "Address: %d, Pages: %d ", table[i].startAddress, table[i].numPages);
+//       memHashNode *node = table[i].next;
+//       while (node != 0)
+//       {
+//         printf(1, "Address: %d, Pages: %d", node->startAddress, node->numPages);
+//         node = node->next;
+//       }
+//     }
+//     printf("\n");
+//   }
+// }
 
 uint wmap(uint addr, int length, int flags, int fd)
 {
   struct proc *curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
 
-  if (hashInit = -1)
+  if (hashInit == -1)
   {
     initHashTable();
     hashInit = 1;
@@ -206,12 +208,13 @@ int wunmap(uint addr)
 
   for (uint i = 0; i < node->numPages; ++i)
   {
-    pte_t *pte = walkpgdir(pgdir, addr + (i * PGSIZE), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+    pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
     kfree(P2V(PTE_ADDR(*pte)));
     *pte = 0;
   }
 
   removeValue(addr); // it says in the writeup to remove any metadata we stored first ... I don't see a reason we can't do it after as of now.
+  return 1;
 }
 
 int sys_wmap(void)
