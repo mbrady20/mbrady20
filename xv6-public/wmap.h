@@ -20,8 +20,8 @@ struct pgdirinfo
 };
 
 // for `getwmapinfo`
-#define MAX_WMMAP_INFO 16
-#define MEM_HASH_SIZE 17 // we use 17 because the page size is divisible by 16 which is the maximum number of pages we can expect
+#define MAX_WMMAP_INFO 16 // 16 because this is the maximum number of pages we can expect
+#define MEM_HASH_SIZE 19  // we use 19 because the page size is divisible by 16,0x60000000 = 1610612736 decimal and 1610612736 + 4096n mod 19 is 7	18	10	2	13	5	16	8	0	11	3	14	6	17	9	1	12	4	15 7
 struct wmapinfo
 {
     int total_mmaps;                    // Total number of wmap regions
