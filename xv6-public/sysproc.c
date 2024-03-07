@@ -199,13 +199,27 @@ int wunmap(uint addr)
 
 int getpgdirinfo(struct pgdirinfo *pdinfo)
 {
+  memset(pdinfo, 0, sizeof(struct pgdirinfo));
+  struct proc *curproc = myproc();
+  pde_t *pgdir = curproc->pgdir;
+
+  for (int i = 0; i < NPDENTRIES; ++i)
+  {
+    if (pgdir[i] & PTE_U)
+    {
+      pdinfo->n_upages++;
+      pdinfo->pa[i] = PTE_ADDR(pgdir[i]);
+      pdinfo->va[i] = PTE_ADDR(P2V(PTE_ADDR(pgdir[i])));
+    }
+  }
+
   return 0;
 }
 
 int getwmapinfo(struct wmapinfo *wminfo)
 {
   int pageCount = 0;
-  wminfo->total_mmaps = 0;
+  memset(wminfo, 0, sizeof(struct wmapinfo));
   for (int i = 0; i < MEM_HASH_SIZE; i++)
   {
     if (table[i].startAddress != -1)
