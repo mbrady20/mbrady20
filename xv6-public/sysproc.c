@@ -56,7 +56,7 @@ void initHashTable()
   }
 }
 
-void insert(uint startAddress, int length)
+void hashInsert(uint startAddress, int numPages)
 {
   int index = hash(startAddress);
 
@@ -71,13 +71,13 @@ void insert(uint startAddress, int length)
     // Insert new item at the beginning of the list
     memHashNode *newNode = &nodePool[poolCounter++];
     newNode->startAddress = startAddress;
-    newNode->length = length;
+    newNode->numPages = numPages;
     newNode->next = table[index].next;
     table[index].next = newNode;
   }
 }
 
-memHashNode *search(int value)
+memHashNode *hashSearch(int value)
 {
   int index = hash(value);
   memHashNode *node = &table[index];
@@ -92,6 +92,49 @@ memHashNode *search(int value)
   return 0;
 }
 
+int removeValue(int startAddress)
+{
+  int index = hash(startAddress);
+  memHashNode *node = &table[index];
+  memHashNode *prev = 0;
+
+  // Special case for removing the first node (dummy head)
+  if (node->startAddress == startAddress)
+  {
+    if (node->next != 0)
+    { // If there's another node in the list, move its data up
+      memHashNode *temp = node->next;
+      node->startAddress = temp->startAddress;
+      node->next = temp->next;
+      // No actual deletion in static memory, but we can consider reusing nodes or marking them
+    }
+    else
+    {
+      // Simply mark this slot as empty
+      node->startAddress = -1;
+      node->next = 0;
+    }
+    return;
+  }
+
+  // Traverse the list to find the node with the target value
+  while (node != 0 && node->startAddress != startAddress)
+  {
+    prev = node;
+    node = node->next;
+  }
+
+  // If the node was not found, return
+  if (node == 0)
+    return;
+
+  // Re-link the previous node to skip the node being removed
+  if (prev != 0)
+  {
+    prev->next = node->next;
+  }
+}
+
 // for debugging
 void printHashTable()
 {
@@ -100,17 +143,18 @@ void printHashTable()
     printf(1, "Slot %d: ", i);
     if (table[i].startAddress != -1)
     {
-      printf(1, "Address: %d, Pages: %d ", table[i].startAddress, table[i].length);
+      printf(1, "Address: %d, Pages: %d ", table[i].startAddress, table[i].numPages);
       memHashNode *node = table[i].next;
       while (node != 0)
       {
-        printf(1, "Address: %d, Pages: %d", node->startAddress, node->length);
+        printf(1, "Address: %d, Pages: %d", node->startAddress, node->numPages);
         node = node->next;
       }
     }
     printf("\n");
   }
 }
+
 uint wmap(uint addr, int length, int flags, int fd)
 {
   struct proc *curproc = myproc();
@@ -118,7 +162,8 @@ uint wmap(uint addr, int length, int flags, int fd)
 
   if (hashInit = -1)
   {
-    // initialize hash table
+    initHashTable();
+    hashInit = 1;
   }
 
   // Check if the address is valid
@@ -138,22 +183,36 @@ uint wmap(uint addr, int length, int flags, int fd)
 
     if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
       return -1;
-    else // if a page is allocated
+    else if (i >= 1)
     {
+      // first i pages allocated successfully but now need to be deallocated bc entire block not open
     }
   }
 
+  // memory successfully added bc no errors
+  hashInsert(addr, length / PGSIZE);
   return addr;
 }
 
-// int wunmap(uint addr)
-// {
-//   struct proc *curproc = myproc();
-//   pde_t *pgdir = curproc->pgdir;
-//   pte_t *pte = walkpgdir(pgdir, addr, 0); // modify page tables to make pages unaccessable
+int wunmap(uint addr)
+{
+  struct proc *curproc = myproc();
+  pde_t *pgdir = curproc->pgdir;
 
-//   kfree(P2V(PTE_ADDR(*pte)));
-// }
+  memHashNode *node = hashSearch(addr);
+
+  if (node == 0)
+    return -1; // no memory at this starting address
+
+  for (uint i = 0; i < node->numPages; ++i)
+  {
+    pte_t *pte = walkpgdir(pgdir, addr + (i * PGSIZE), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+    kfree(P2V(PTE_ADDR(*pte)));
+    pte_t *pte = 0;
+  }
+
+  removeValue(addr); // it says in the writeup to remove any metadata we stored first ... I don't see a reason we can't do it after as of now.
+}
 
 int sys_wmap(void)
 {

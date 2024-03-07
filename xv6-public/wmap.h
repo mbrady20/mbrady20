@@ -33,6 +33,6 @@ struct wmapinfo
 typedef struct memHashNode
 {
     uint startAddress;
-    int length;
+    int numPages;
     struct Node *next;
 } memHashNode;
