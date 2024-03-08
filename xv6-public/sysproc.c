@@ -167,10 +167,14 @@ uint wmap(uint addr, int length, int flags, int fd)
       return -1;
 
     if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
-      return -1;
-    else if (i >= 1)
     {
-      // first i pages allocated successfully but now need to be deallocated bc entire block not open
+      for (uint j = 0; j < i; j += PGSIZE)
+      {
+        pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+        kfree(P2V(PTE_ADDR(*pte)));
+        *pte = 0;
+      }
+      return FAILED;
     }
   }
 
