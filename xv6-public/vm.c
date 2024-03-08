@@ -68,10 +68,14 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   last = (char *)PGROUNDDOWN(((uint)va) + size - 1);
   for (;;)
   {
-    if ((pte = walkpgdir(pgdir, a, 1)) == 0)
+    if ((pte = walkpgdir(pgdir, a, 1)) == 0) {
+      cprintf("invalid\n");
       return -1;
-    if (*pte & PTE_P)
+    }
+    if (*pte & PTE_P) {
+      cprintf("tags invalid\n");
       return -1;
+    }
     *pte = pa | perm | PTE_P;
     if (a == last)
       break;

@@ -139,6 +139,43 @@ int removeValue(int startAddress)
   return 1;
 }
 
+uint find_free_space(struct proc * curproc, int length, uint addr) {
+  char *a;
+  pte_t *pte;
+
+  a = (char *)PGROUNDDOWN((uint)addr);
+
+  do {
+    if (addr >= KERNBASE) { addr = MMAPBASE; }
+
+    a = (char *)PGROUNDDOWN((uint)addr);
+    
+    if ((pte = walkpgdir(curproc->pgdir, a, 1)) == 0)
+        return -1;
+    if (*pte & PTE_P) {
+      addr = addr + PGSIZE;
+    } else {
+      int validPages = 0;
+      for (int j = 0; j < PGROUNDUP(length + PGSIZE) / PGSIZE; j++) {
+        pte_t *next_pte = walkpgdir(curproc->pgdir, a + j * PGSIZE, 1);
+        if (next_pte && !(*next_pte & PTE_P)) {
+          validPages++;
+        } 
+      }
+
+      if (validPages == (PGROUNDUP(length + PGSIZE) / PGSIZE) ) {
+        cprintf("Success at addr: %x\n", addr);
+        return addr;
+      } else {
+        // Increment addr even if a suitable range is not found
+        addr = addr + PGSIZE;
+      }
+    }
+  } while (addr < KERNBASE); // Stop the loop when addr reaches KERNBASE
+
+  return -1;
+}
+
 uint wmap(uint addr, int length, int flags, int fd)
 {
   struct proc *curproc = myproc();
@@ -150,22 +187,43 @@ uint wmap(uint addr, int length, int flags, int fd)
     hashInit = 1;
   }
 
-  // Check if the address is valid
-  if (addr < 0x60000000 || addr >= 0x80000000)
-    return -1;
+  // If MAP_FIXED flag is not set, find a suitable address
+  if (!(flags & MAP_FIXED))
+  {
+    addr = find_free_space(curproc, length, addr);
+    if (addr == 0 || addr < 0) {
+      cprintf("addr invalid: %x\n", addr);
+      return -1; // No suitable address found
+    }
+  }
+  else
+  {
+    // Check if the address is valid
+    if (addr < 0x60000000 || addr >= 0x80000000) {
+      cprintf("address invalid\n");
+      return -1;
+    }
+  }
+  cprintf("addr good\n");
 
   // Check if the length is valid
-  if (length <= 0)
+  if (length <= 0) {
+    cprintf("length invalid\n");
     return -1;
+  }
 
   int i;
   // Allocate physical memory and map it to the virtual address space
   for (i = 0; i < length; i += PGSIZE)
   {
     char *mem = kalloc();
-    if (mem == 0)
+    if (mem == 0) {
+      cprintf("mem invalid\n");
       return -1;
-
+    }
+    cprintf("kalloc good\n");
+    
+    cprintf("curr addr: %x\n", addr + i);
     if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
     {
       for (uint j = 0; j < i; j += PGSIZE)
@@ -174,8 +232,11 @@ uint wmap(uint addr, int length, int flags, int fd)
         kfree(P2V(PTE_ADDR(*pte)));
         *pte = 0;
       }
+      cprintf("map invalid\n");
       return FAILED;
     }
+
+    cprintf("page %p good\n", i);
   }
 
   // memory successfully added bc no errors
