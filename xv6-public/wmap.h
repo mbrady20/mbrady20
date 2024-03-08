@@ -34,5 +34,6 @@ typedef struct memHashNode
 {
     uint startAddress;
     int numPages;
+    int length;
     struct memHashNode *next;
 } memHashNode;

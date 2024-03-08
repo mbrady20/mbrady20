@@ -8,12 +8,12 @@
 #include "proc.h"
 #include "wmap.h"
 
-void printf ( int fd, const char *s, ... );
-
 // typedef struct memHashNode
 // {
-//     int data;
-//     struct Node *next;
+//     uint startAddress;
+//     int numPages;
+//     int length;
+//     struct memHashNode *next;
 // } memHashNode;
 
 // Declare hashtable
@@ -56,7 +56,7 @@ void initHashTable()
   }
 }
 
-void hashInsert(uint startAddress, int numPages)
+void hashInsert(uint startAddress, int length, int numPages)
 {
   int index = hash(startAddress);
 
@@ -71,6 +71,7 @@ void hashInsert(uint startAddress, int numPages)
     // Insert new item at the beginning of the list
     memHashNode *newNode = &nodePool[poolCounter++];
     newNode->startAddress = startAddress;
+    newNode->length = length;
     newNode->numPages = numPages;
     newNode->next = table[index].next;
     table[index].next = newNode;
@@ -148,15 +149,16 @@ uint wmap(uint addr, int length, int flags, int fd)
   }
 
   // Check if the address is valid
-  if (addr < 0x60000000 || addr >= 0x80000000 || addr % PGSIZE != 0)
+  if (addr < 0x60000000 || addr >= 0x80000000)
     return -1;
 
   // Check if the length is valid
   if (length <= 0)
     return -1;
 
+  int i;
   // Allocate physical memory and map it to the virtual address space
-  for (int i = 0; i < length; i += PGSIZE)
+  for (i = 0; i < length; i += PGSIZE)
   {
     char *mem = kalloc();
     if (mem == 0)
@@ -171,7 +173,7 @@ uint wmap(uint addr, int length, int flags, int fd)
   }
 
   // memory successfully added bc no errors
-  hashInsert(addr, length / PGSIZE);
+  hashInsert(addr, length, i + 1);
   return addr;
 }
 
@@ -196,36 +198,41 @@ int wunmap(uint addr)
   return 1;
 }
 
-int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo) {
-    pde_t *pgdir;
-    pte_t *pgtab;
-    uint i, j, count = 0;
+int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
+{
+  pde_t *pgdir;
+  pte_t *pgtab;
+  uint i, j, count = 0;
 
-    pgdir = p->pgdir;
+  pgdir = p->pgdir;
 
-    for (i = 0; i < NPDENTRIES; i++) {
-        if (pgdir[i] & PTE_P && pgdir[i] & PTE_U) {
-            pgtab = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
-            for (j = 0; j < NPTENTRIES; j++) {
-                if (pgtab[j] & PTE_P && pgtab[j] & PTE_U) {
-                    if (count < MAX_UPAGE_INFO) {
-                        pdinfo->va[count] = i*PGSIZE + j*PGSIZE;
-                        pdinfo->pa[count] = PTE_ADDR(pgtab[j]);
-                    }
-                    count++;
-                }
-            }
+  for (i = 0; i < NPDENTRIES; i++)
+  {
+    if (pgdir[i] & PTE_P && pgdir[i] & PTE_U)
+    {
+      pgtab = (pte_t *)P2V(PTE_ADDR(pgdir[i]));
+      for (j = 0; j < NPTENTRIES; j++)
+      {
+        if (pgtab[j] & PTE_P && pgtab[j] & PTE_U)
+        {
+          if (count < MAX_UPAGE_INFO)
+          {
+            pdinfo->va[count] = i * PGSIZE + j * PGSIZE;
+            pdinfo->pa[count] = PTE_ADDR(pgtab[j]);
+          }
+          count++;
         }
+      }
     }
+  }
 
-    pdinfo->n_upages = count;
-    return 0;
+  pdinfo->n_upages = count;
+  return 0;
 }
 
 /*
 int getpgdirinfo(struct pgdirinfo *pdinfo)
 {
-<<<<<<< HEAD
   memset(pdinfo, 0, sizeof(struct pgdirinfo));
   struct proc *curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
@@ -240,55 +247,16 @@ int getpgdirinfo(struct pgdirinfo *pdinfo)
     }
   }
 
-=======
-  pde_t * pde;
-  pte_t *pgtab;
-
-  pde = curproc->pgdir;
-  pdinfo->n_upages = 0;
-  int i = 0;
-  
-  cprintf("pde: %d\n", pde);
-
-  for (int j = 0; j < MAX_UPAGE_INFO; j++) {
-    pdinfo->va[j] = 0x0;
-  }
-
-  cprintf("pde: %d\n", pde);
-
-  for (int w = 0; w < NPDENTRIES; w++) {
-    if ( (curproc->pgdir)[i] & PTE_U) {
-      pgtab = (pte_t*)P2V(PTE_ADDR(curproc->pgdir[i]));
-      for (int j = 0; j < NPTENTRIES; j++) {
-        if (pgtab[j] & PTE_U) {
-          pdinfo->n_upages++;
-          pdinfo->va[i] = curproc->pgdir[i];
-          pdinfo->pa[i] = PTE_ADDR(pgtab[i]);
-          i++;
-        }
-      }
-    }
-  }
-
-  // loop until above end of available memory.
-  while (pde < pde + 0x20000000) {
-    if (*pde & PTE_U) {
-      pdinfo->n_upages++;
-      pdinfo->va[i] = *pde;
-      pdinfo->pa[i] = PTE_ADDR(pde);
-      i++;
-    }
-    pde = pde + 0x1000;
-  } 
-
-  cprintf("pages: %d\n", pdinfo->n_upages);
-  cprintf("va[0]: %d\n", pdinfo->va[0]);
->>>>>>> b6e5064035ee87bd292ef41ad895cfe079bf0ee4
   return 0;
 } */
 
 int getwmapinfo(struct wmapinfo *wminfo)
 {
+  if (hashInit == -1)
+  {
+    initHashTable();
+    hashInit = 0;
+  }
   int pageCount = 0;
   memset(wminfo, 0, sizeof(struct wmapinfo));
   for (int i = 0; i < MEM_HASH_SIZE; i++)
@@ -303,12 +271,16 @@ int getwmapinfo(struct wmapinfo *wminfo)
       while (node != 0)
       {
         wminfo->addr[pageCount] = node->startAddress;
-        wminfo->length[pageCount] = node->numPages * PGSIZE;
+        wminfo->length[pageCount] = node->length;
         wminfo->n_loaded_pages[pageCount++] = node->numPages;
         wminfo->total_mmaps += 1;
         node = node->next;
       }
     }
+  }
+  for (int i = 0; i < pageCount; i++)
+  {
+    cprintf("Address: %p, Length: %d\n", wminfo->addr[i], wminfo->length[i]);
   }
   return 0;
 }
