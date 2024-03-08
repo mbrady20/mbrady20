@@ -8,11 +8,16 @@
 #include "proc.h"
 #include "wmap.h"
 
+void printf ( int fd, const char *s, ... );
+
 // typedef struct memHashNode
 // {
 //     int data;
 //     struct Node *next;
 // } memHashNode;
+
+// Global curproc
+struct proc *curproc;
 
 // Declare hashtable
 memHashNode table[MEM_HASH_SIZE];
@@ -44,9 +49,6 @@ int hash(int key)
 {
   return key % MEM_HASH_SIZE;
 }
-
-pte_t *walkpgdir(pde_t *pgdir, const void *va, int alloc);
-int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 
 void initHashTable()
 {
@@ -139,7 +141,7 @@ int removeValue(int startAddress)
 
 uint wmap(uint addr, int length, int flags, int fd)
 {
-  struct proc *curproc = myproc();
+  curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
 
   if (hashInit == -1)
@@ -178,7 +180,7 @@ uint wmap(uint addr, int length, int flags, int fd)
 
 int wunmap(uint addr)
 {
-  struct proc *curproc = myproc();
+  curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
 
   memHashNode *node = hashSearch(addr);
@@ -199,8 +201,44 @@ int wunmap(uint addr)
 
 int getpgdirinfo(struct pgdirinfo *pdinfo)
 {
+  pde_t * pde;
+  pde = curproc->pgdir;
+  pdinfo->n_upages = 0;
+  int i = 0;
+  
+  cprintf("pde: %d\n", pde);
+
+  for (int j = 0; j < MAX_UPAGE_INFO; j++) {
+    pdinfo->va[j] = 0x0;
+  }
+
+  cprintf("pde: %d\n", pde);
+
+  for (int w = 0; w < (20000000/1000); w++) {
+    if ( (curproc->pgdir)[i] & PTE_U) {
+      pdinfo->n_upages++;
+      pdinfo->va[i] = (curproc->pgdir)[i];
+      pdinfo->pa[i] = PTE_ADDR((curproc->pgdir)[i]);
+      i++;
+    }
+  }
+
+  /*
+  // loop until above end of available memory.
+  while (pde < pde + 0x20000000) {
+    if (*pde & PTE_U) {
+      pdinfo->n_upages++;
+      pdinfo->va[i] = *pde;
+      pdinfo->pa[i] = PTE_ADDR(pde);
+      i++;
+    }
+    pde = pde + 0x1000;
+  } */
+
+  cprintf("pages: %d\n", pdinfo->n_upages);
+  cprintf("va[0]: %d\n", pdinfo->va[0]);
   return 0;
-}
+} 
 
 int getwmapinfo(struct wmapinfo *wminfo)
 {
