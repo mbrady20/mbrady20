@@ -64,6 +64,8 @@ void hashInsert(uint startAddress, int length, int numPages)
   if (table[index].startAddress == -1)
   {
     table[index].startAddress = startAddress;
+    table[index].length = length;
+    table[index].numPages = numPages;
     // No need to allocate for the first item as it uses the table's array directly
   }
   else
@@ -173,6 +175,7 @@ uint wmap(uint addr, int length, int flags, int fd)
   }
 
   // memory successfully added bc no errors
+
   hashInsert(addr, length, i + 1);
   return addr;
 }
@@ -264,7 +267,7 @@ int getwmapinfo(struct wmapinfo *wminfo)
     if (table[i].startAddress != -1)
     {
       wminfo->addr[pageCount] = table[i].startAddress;
-      wminfo->length[pageCount] = table[i].numPages * PGSIZE;
+      wminfo->length[pageCount] = table[i].length;
       wminfo->n_loaded_pages[pageCount++] = table[i].numPages;
       wminfo->total_mmaps += 1;
       memHashNode *node = table[i].next;
@@ -277,10 +280,6 @@ int getwmapinfo(struct wmapinfo *wminfo)
         node = node->next;
       }
     }
-  }
-  for (int i = 0; i < pageCount; i++)
-  {
-    cprintf("Address: %p, Length: %d\n", wminfo->addr[i], wminfo->length[i]);
   }
   return 0;
 }
