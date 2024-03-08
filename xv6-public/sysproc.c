@@ -8,6 +8,8 @@
 #include "proc.h"
 #include "wmap.h"
 
+void printf ( int fd, const char *s, ... );
+
 // typedef struct memHashNode
 // {
 //     int data;
@@ -44,9 +46,6 @@ int hash(int key)
 {
   return key % MEM_HASH_SIZE;
 }
-
-pte_t *walkpgdir(pde_t *pgdir, const void *va, int alloc);
-int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm);
 
 void initHashTable()
 {
@@ -197,8 +196,36 @@ int wunmap(uint addr)
   return 1;
 }
 
+int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo) {
+    pde_t *pgdir;
+    pte_t *pgtab;
+    uint i, j, count = 0;
+
+    pgdir = p->pgdir;
+
+    for (i = 0; i < NPDENTRIES; i++) {
+        if (pgdir[i] & PTE_P && pgdir[i] & PTE_U) {
+            pgtab = (pte_t*)P2V(PTE_ADDR(pgdir[i]));
+            for (j = 0; j < NPTENTRIES; j++) {
+                if (pgtab[j] & PTE_P && pgtab[j] & PTE_U) {
+                    if (count < MAX_UPAGE_INFO) {
+                        pdinfo->va[count] = i*PGSIZE + j*PGSIZE;
+                        pdinfo->pa[count] = PTE_ADDR(pgtab[j]);
+                    }
+                    count++;
+                }
+            }
+        }
+    }
+
+    pdinfo->n_upages = count;
+    return 0;
+}
+
+/*
 int getpgdirinfo(struct pgdirinfo *pdinfo)
 {
+<<<<<<< HEAD
   memset(pdinfo, 0, sizeof(struct pgdirinfo));
   struct proc *curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
@@ -213,8 +240,52 @@ int getpgdirinfo(struct pgdirinfo *pdinfo)
     }
   }
 
+=======
+  pde_t * pde;
+  pte_t *pgtab;
+
+  pde = curproc->pgdir;
+  pdinfo->n_upages = 0;
+  int i = 0;
+  
+  cprintf("pde: %d\n", pde);
+
+  for (int j = 0; j < MAX_UPAGE_INFO; j++) {
+    pdinfo->va[j] = 0x0;
+  }
+
+  cprintf("pde: %d\n", pde);
+
+  for (int w = 0; w < NPDENTRIES; w++) {
+    if ( (curproc->pgdir)[i] & PTE_U) {
+      pgtab = (pte_t*)P2V(PTE_ADDR(curproc->pgdir[i]));
+      for (int j = 0; j < NPTENTRIES; j++) {
+        if (pgtab[j] & PTE_U) {
+          pdinfo->n_upages++;
+          pdinfo->va[i] = curproc->pgdir[i];
+          pdinfo->pa[i] = PTE_ADDR(pgtab[i]);
+          i++;
+        }
+      }
+    }
+  }
+
+  // loop until above end of available memory.
+  while (pde < pde + 0x20000000) {
+    if (*pde & PTE_U) {
+      pdinfo->n_upages++;
+      pdinfo->va[i] = *pde;
+      pdinfo->pa[i] = PTE_ADDR(pde);
+      i++;
+    }
+    pde = pde + 0x1000;
+  } 
+
+  cprintf("pages: %d\n", pdinfo->n_upages);
+  cprintf("va[0]: %d\n", pdinfo->va[0]);
+>>>>>>> b6e5064035ee87bd292ef41ad895cfe079bf0ee4
   return 0;
-}
+} */
 
 int getwmapinfo(struct wmapinfo *wminfo)
 {
@@ -269,11 +340,13 @@ int sys_wunmap(void)
 
 int sys_getpgdirinfo(void)
 {
+  struct proc *curproc = myproc();
+
   struct pgdirinfo *pginfo;
   if (argptr(0, (void *)&pginfo, sizeof(struct pgdirinfo)) < 0)
     return -1; // failure
 
-  return getpgdirinfo(pginfo);
+  return getpgdirinfo(curproc, pginfo);
 }
 
 int sys_getwmapinfo(void)

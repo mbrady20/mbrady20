@@ -31,7 +31,10 @@ int wunmap(uint addr);
 uint wremap(uint oldaddr, int oldsize, int newsize, int flags);
 int getpgdirinfo(struct pgdirinfo *pdinfo);
 int getwmapinfo(struct wmapinfo *wminfo);
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6e5064035ee87bd292ef41ad895cfe079bf0ee4
 
 // ulib.c
 int stat(const char*, struct stat*);
