@@ -28,15 +28,15 @@ objdump -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > kernel.sym
 dd if=/dev/zero of=xv6.img count=10000
 10000+0 records in
 10000+0 records out
-5120000 bytes (5.1 MB, 4.9 MiB) copied, 0.0100388 s, 510 MB/s
+5120000 bytes (5.1 MB, 4.9 MiB) copied, 0.0104208 s, 491 MB/s
 dd if=bootblock of=xv6.img conv=notrunc
 1+0 records in
 1+0 records out
-512 bytes copied, 4.1653e-05 s, 12.3 MB/s
+512 bytes copied, 0.000156452 s, 3.3 MB/s
 dd if=kernel of=xv6.img seek=1 conv=notrunc
-422+1 records in
-422+1 records out
-216420 bytes (216 kB, 211 KiB) copied, 0.000389752 s, 555 MB/s
+425+1 records in
+425+1 records out
+217884 bytes (218 kB, 213 KiB) copied, 0.000346659 s, 629 MB/s
 gcc -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie   -c -o usertests.o usertests.c
 ld -m    elf_i386 -N -e main -Ttext 0 -o _usertests usertests.o ulib.o usys.o printf.o umalloc.o
 objdump -S _usertests > usertests.asm
@@ -65,11 +65,11 @@ Places one anonymous map at a fixed address.
 
 **********************************************************************
 Running xv6 user progam /home/cs537-1/tests/P4/2_wmap_tests/test_4.c
-DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpln_0u4ty/p/Makefile', '/tmp/tmpln_0u4ty/p/Makefile.test']
+DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpxjjplq6o/p/Makefile', '/tmp/tmpxjjplq6o/p/Makefile.test']
 Trying to build project using make
 make xv6.img fs.img
-/tmp/tmpln_0u4ty/p/Makefile
-/tmp/tmpln_0u4ty/p/Makefile.test
+/tmp/tmpxjjplq6o/p/Makefile
+/tmp/tmpxjjplq6o/p/Makefile.test
 make: 'xv6.img' is up to date.
 make: 'fs.img' is up to date.
 make qemu-nox CPUS=1
@@ -90,21 +90,74 @@ Press Ctrl-B to configure iPXE (PCI 00:03.0)...
 
 
 Booting from Hard Disk..xv6...
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
 cpu0: starting 0
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 init: starting sh
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
 $ tester
 tester
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+va: 4000
+va: 5000
+va: 6000
+va: 7000
+va: 8000
+va: 9000
+va: a000
+va: b000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 
 
 TEST_4
 Initially 0 maps. 	Okay.
+addr: 60021000
 addr good
 kalloc good
 curr addr: 60021000
+va: 60021000
 page 0 good
 kalloc good
 curr addr: 60022000
+va: 60022000
 page 1000 good
 Map 1 at 0x60021000 with length 4104. 	Okay.
 
@@ -123,11 +176,11 @@ Places one anonymous map at a NOT-fixed address.
 
 **********************************************************************
 Running xv6 user progam /home/cs537-1/tests/P4/2_wmap_tests/test_5.c
-DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpln_0u4ty/p/Makefile', '/tmp/tmpln_0u4ty/p/Makefile.test']
+DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpxjjplq6o/p/Makefile', '/tmp/tmpxjjplq6o/p/Makefile.test']
 Trying to build project using make
 make xv6.img fs.img
-/tmp/tmpln_0u4ty/p/Makefile
-/tmp/tmpln_0u4ty/p/Makefile.test
+/tmp/tmpxjjplq6o/p/Makefile
+/tmp/tmpxjjplq6o/p/Makefile.test
 make: 'xv6.img' is up to date.
 make: 'fs.img' is up to date.
 make qemu-nox CPUS=1
@@ -148,24 +201,76 @@ Press Ctrl-B to configure iPXE (PCI 00:03.0)...
 
 
 Booting from Hard Disk..xv6...
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
 cpu0: starting 0
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 init: starting sh
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
 $ tester
 tester
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+va: 4000
+va: 5000
+va: 6000
+va: 7000
+va: 8000
+va: 9000
+va: a000
+va: b000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 
 
 TEST_5
 Initially 0 maps. 	Okay.
-Success at addr: 60021000
+addr: 60021000
 addr good
 kalloc good
-curr addr: 60021000
+curr addr: 60022000
+va: 60022000
 page 0 good
 kalloc good
-curr addr: 60022000
+curr addr: 60023000
+va: 60023000
 page 1000 good
-Map 1 at 0x60021000 with length 4104. 	Okay.
+Map 1 at 0x60022000 with length 4104. 	Okay.
 
 WMMAP	 SUCCESS
 
@@ -181,11 +286,11 @@ Places one filebacked map at a fixed address.
 
 **********************************************************************
 Running xv6 user progam /home/cs537-1/tests/P4/2_wmap_tests/test_6.c
-DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpln_0u4ty/p/Makefile', '/tmp/tmpln_0u4ty/p/Makefile.test']
+DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpxjjplq6o/p/Makefile', '/tmp/tmpxjjplq6o/p/Makefile.test']
 Trying to build project using make
 make xv6.img fs.img
-/tmp/tmpln_0u4ty/p/Makefile
-/tmp/tmpln_0u4ty/p/Makefile.test
+/tmp/tmpxjjplq6o/p/Makefile
+/tmp/tmpxjjplq6o/p/Makefile.test
 make: 'xv6.img' is up to date.
 make: 'fs.img' is up to date.
 make qemu-nox CPUS=1
@@ -206,18 +311,70 @@ Press Ctrl-B to configure iPXE (PCI 00:03.0)...
 
 
 Booting from Hard Disk..xv6...
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
 cpu0: starting 0
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 init: starting sh
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
 $ tester
 tester
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+va: 4000
+va: 5000
+va: 6000
+va: 7000
+va: 8000
+va: 9000
+va: a000
+va: b000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 
 
 TEST_6
 Initially 0 maps. 	Okay.
+addr: 60021000
 addr good
 kalloc good
 curr addr: 60021000
+va: 60021000
 page 0 good
 Map 1 at 0x60021000 with length 513. 	Okay.
 
@@ -235,11 +392,11 @@ Places multiple maps at different addresses.
 
 **********************************************************************
 Running xv6 user progam /home/cs537-1/tests/P4/2_wmap_tests/test_7.c
-DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpln_0u4ty/p/Makefile', '/tmp/tmpln_0u4ty/p/Makefile.test']
+DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpxjjplq6o/p/Makefile', '/tmp/tmpxjjplq6o/p/Makefile.test']
 Trying to build project using make
 make xv6.img fs.img
-/tmp/tmpln_0u4ty/p/Makefile
-/tmp/tmpln_0u4ty/p/Makefile.test
+/tmp/tmpxjjplq6o/p/Makefile
+/tmp/tmpxjjplq6o/p/Makefile.test
 make: 'xv6.img' is up to date.
 make: 'fs.img' is up to date.
 make qemu-nox CPUS=1
@@ -260,54 +417,1858 @@ Press Ctrl-B to configure iPXE (PCI 00:03.0)...
 
 
 Booting from Hard Disk..xv6...
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
 cpu0: starting 0
 sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
 init: starting sh
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
 $ tester
 tester
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+va: 4000
+va: 5000
+va: 6000
+va: 7000
+va: 8000
+va: 9000
+va: a000
+va: b000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
 
 
 TEST_7
 Initially 0 maps. 	Okay.
+addr: 60021000
 addr good
 kalloc good
 curr addr: 60021000
+va: 60021000
 page 0 good
 Map 1 at 0x60021000 with length 513. 	Okay.
+addr: 60022000
 addr good
 kalloc good
 curr addr: 60022000
+va: 60022000
 page 0 good
 kalloc good
 curr addr: 60023000
+va: 60023000
 page 1000 good
 kalloc good
 curr addr: 60024000
+va: 60024000
 page 2000 good
 Map 2 at 0x60022000 with length 8200. 	Okay.
+addr: 60023000
 addr good
 kalloc good
 curr addr: 60023000
+va: 60023000
 tags invalid
 map invalid
 Map 3 did not exist. 	Okay.
-Success at addr: 60025209
+addr: 60023209
 addr good
 kalloc good
-curr addr: 60025209
-page 0 good
-kalloc good
-curr addr: 60026209
+curr addr: 60024209
+va: 60024209
 tags invalid
 map invalid
-Cause: `wmap()` returned -1
+Map 4 at 0x60024209 with length 16392. 	Okay.
+Map 1, Map 2, Map 4 do not overlap with each other. 	Okay
+
+WMMAP	 SUCCESS
+
+
+test test_7 PASSED (1 of 1)
+ (Places multiple maps at different addresses.)
+
+starting test_8
+
+**********************************************************************
+
+Test test_8
+Places a large number of anonymous maps at fixed and non-fixed addresses
+
+**********************************************************************
+Running xv6 user progam /home/cs537-1/tests/P4/2_wmap_tests/test_8.c
+DEBUG: cmd = ['/home/cs537-1/tests/P4/edit-makefile.sh', '/tmp/tmpxjjplq6o/p/Makefile', '/tmp/tmpxjjplq6o/p/Makefile.test']
+Trying to build project using make
+make xv6.img fs.img
+/tmp/tmpxjjplq6o/p/Makefile
+/tmp/tmpxjjplq6o/p/Makefile.test
+make: 'xv6.img' is up to date.
+make: 'fs.img' is up to date.
+make qemu-nox CPUS=1
+gcc -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer -fno-stack-protector -fno-pie -no-pie   -c -o tester.o tester.c
+ld -m    elf_i386 -N -e main -Ttext 0 -o _tester tester.o ulib.o usys.o printf.o umalloc.o
+objdump -S _tester > tester.asm
+objdump -t _tester | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > tester.sym
+./mkfs fs.img README _cat _echo _forktest _grep _init _kill _ln _ls _tester _mkdir _rm _sh _stressfs _usertests _wc _zombie _getfilename _testwmap 
+nmeta 59 (boot, super, log blocks 30 inode blocks 26, bitmap blocks 1) blocks 941 total 1000
+balloc: first 747 blocks have been allocated
+balloc: write bitmap block at sector 58
+qemu-system-i386 -nographic -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp 1 -m 512 
+c[?7l[2J[0mSeaBIOS (version 1.15.0-1)
+
+
+iPXE (https://ipxe.org) 00:03.0 CA00 PCI2.10 PnP PMM+1FF8B4A0+1FECB4A0 CA00
+Press Ctrl-B to configure iPXE (PCI 00:03.0)...                                                                               
+
+
+Booting from Hard Disk..xv6...
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+cpu0: starting 0
+sb: size 1000 nblocks 941 ninodes 200 nlog 30 logstart 2 inodestart 32 bmap start 58
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+init: starting sh
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+$ tester
+tester
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+va: 4000
+va: 5000
+va: 6000
+va: 7000
+va: 8000
+va: 9000
+va: a000
+va: b000
+va: 80000000
+va: 80100000
+va: 80109000
+va: fe000000
+va: 0
+va: 1000
+va: 2000
+va: 3000
+
+
+TEST_8
+Maximum #allocatable pages: 131072
+Initially 0 maps. 	Okay.
+va: 4000
+va: 5000
+va: 6000
+va: 7000
+va: 8000
+va: 9000
+va: a000
+va: b000
+addr: 60021000
+addr good
+kalloc good
+curr addr: 60021000
+va: 60021000
+page 0 good
+kalloc good
+curr addr: 60022000
+va: 60022000
+page 1000 good
+kalloc good
+curr addr: 60023000
+va: 60023000
+page 2000 good
+kalloc good
+curr addr: 60024000
+va: 60024000
+page 3000 good
+kalloc good
+curr addr: 60025000
+va: 60025000
+page 4000 good
+kalloc good
+curr addr: 60026000
+va: 60026000
+page 5000 good
+kalloc good
+curr addr: 60027000
+va: 60027000
+page 6000 good
+kalloc good
+curr addr: 60028000
+va: 60028000
+page 7000 good
+kalloc good
+curr addr: 60029000
+va: 60029000
+page 8000 good
+kalloc good
+curr addr: 6002a000
+va: 6002a000
+page 9000 good
+kalloc good
+curr addr: 6002b000
+va: 6002b000
+page a000 good
+kalloc good
+curr addr: 6002c000
+va: 6002c000
+page b000 good
+kalloc good
+curr addr: 6002d000
+va: 6002d000
+page c000 good
+kalloc good
+curr addr: 6002e000
+va: 6002e000
+page d000 good
+kalloc good
+curr addr: 6002f000
+va: 6002f000
+page e000 good
+kalloc good
+curr addr: 60030000
+va: 60030000
+page f000 good
+kalloc good
+curr addr: 60031000
+va: 60031000
+page 10000 good
+kalloc good
+curr addr: 60032000
+va: 60032000
+page 11000 good
+kalloc good
+curr addr: 60033000
+va: 60033000
+page 12000 good
+kalloc good
+curr addr: 60034000
+va: 60034000
+page 13000 good
+kalloc good
+curr addr: 60035000
+va: 60035000
+page 14000 good
+kalloc good
+curr addr: 60036000
+va: 60036000
+page 15000 good
+kalloc good
+curr addr: 60037000
+va: 60037000
+page 16000 good
+kalloc good
+curr addr: 60038000
+va: 60038000
+page 17000 good
+kalloc good
+curr addr: 60039000
+va: 60039000
+page 18000 good
+kalloc good
+curr addr: 6003a000
+va: 6003a000
+page 19000 good
+kalloc good
+curr addr: 6003b000
+va: 6003b000
+page 1a000 good
+kalloc good
+curr addr: 6003c000
+va: 6003c000
+page 1b000 good
+kalloc good
+curr addr: 6003d000
+va: 6003d000
+page 1c000 good
+kalloc good
+curr addr: 6003e000
+va: 6003e000
+page 1d000 good
+kalloc good
+curr addr: 6003f000
+va: 6003f000
+page 1e000 good
+kalloc good
+curr addr: 60040000
+va: 60040000
+page 1f000 good
+kalloc good
+curr addr: 60041000
+va: 60041000
+page 20000 good
+kalloc good
+curr addr: 60042000
+va: 60042000
+page 21000 good
+kalloc good
+curr addr: 60043000
+va: 60043000
+page 22000 good
+kalloc good
+curr addr: 60044000
+va: 60044000
+page 23000 good
+kalloc good
+curr addr: 60045000
+va: 60045000
+page 24000 good
+kalloc good
+curr addr: 60046000
+va: 60046000
+page 25000 good
+kalloc good
+curr addr: 60047000
+va: 60047000
+page 26000 good
+kalloc good
+curr addr: 60048000
+va: 60048000
+page 27000 good
+kalloc good
+curr addr: 60049000
+va: 60049000
+page 28000 good
+kalloc good
+curr addr: 6004a000
+va: 6004a000
+page 29000 good
+kalloc good
+curr addr: 6004b000
+va: 6004b000
+page 2a000 good
+kalloc good
+curr addr: 6004c000
+va: 6004c000
+page 2b000 good
+kalloc good
+curr addr: 6004d000
+va: 6004d000
+page 2c000 good
+kalloc good
+curr addr: 6004e000
+va: 6004e000
+page 2d000 good
+kalloc good
+curr addr: 6004f000
+va: 6004f000
+page 2e000 good
+kalloc good
+curr addr: 60050000
+va: 60050000
+page 2f000 good
+kalloc good
+curr addr: 60051000
+va: 60051000
+page 30000 good
+kalloc good
+curr addr: 60052000
+va: 60052000
+page 31000 good
+kalloc good
+curr addr: 60053000
+va: 60053000
+page 32000 good
+kalloc good
+curr addr: 60054000
+va: 60054000
+page 33000 good
+kalloc good
+curr addr: 60055000
+va: 60055000
+page 34000 good
+kalloc good
+curr addr: 60056000
+va: 60056000
+page 35000 good
+kalloc good
+curr addr: 60057000
+va: 60057000
+page 36000 good
+kalloc good
+curr addr: 60058000
+va: 60058000
+page 37000 good
+kalloc good
+curr addr: 60059000
+va: 60059000
+page 38000 good
+kalloc good
+curr addr: 6005a000
+va: 6005a000
+page 39000 good
+kalloc good
+curr addr: 6005b000
+va: 6005b000
+page 3a000 good
+kalloc good
+curr addr: 6005c000
+va: 6005c000
+page 3b000 good
+kalloc good
+curr addr: 6005d000
+va: 6005d000
+page 3c000 good
+kalloc good
+curr addr: 6005e000
+va: 6005e000
+page 3d000 good
+kalloc good
+curr addr: 6005f000
+va: 6005f000
+page 3e000 good
+kalloc good
+curr addr: 60060000
+va: 60060000
+page 3f000 good
+kalloc good
+curr addr: 60061000
+va: 60061000
+page 40000 good
+kalloc good
+curr addr: 60062000
+va: 60062000
+page 41000 good
+kalloc good
+curr addr: 60063000
+va: 60063000
+page 42000 good
+kalloc good
+curr addr: 60064000
+va: 60064000
+page 43000 good
+kalloc good
+curr addr: 60065000
+va: 60065000
+page 44000 good
+kalloc good
+curr addr: 60066000
+va: 60066000
+page 45000 good
+kalloc good
+curr addr: 60067000
+va: 60067000
+page 46000 good
+kalloc good
+curr addr: 60068000
+va: 60068000
+page 47000 good
+kalloc good
+curr addr: 60069000
+va: 60069000
+page 48000 good
+kalloc good
+curr addr: 6006a000
+va: 6006a000
+page 49000 good
+kalloc good
+curr addr: 6006b000
+va: 6006b000
+page 4a000 good
+kalloc good
+curr addr: 6006c000
+va: 6006c000
+page 4b000 good
+kalloc good
+curr addr: 6006d000
+va: 6006d000
+page 4c000 good
+kalloc good
+curr addr: 6006e000
+va: 6006e000
+page 4d000 good
+kalloc good
+curr addr: 6006f000
+va: 6006f000
+page 4e000 good
+kalloc good
+curr addr: 60070000
+va: 60070000
+page 4f000 good
+kalloc good
+curr addr: 60071000
+va: 60071000
+page 50000 good
+kalloc good
+curr addr: 60072000
+va: 60072000
+page 51000 good
+kalloc good
+curr addr: 60073000
+va: 60073000
+page 52000 good
+kalloc good
+curr addr: 60074000
+va: 60074000
+page 53000 good
+kalloc good
+curr addr: 60075000
+va: 60075000
+page 54000 good
+kalloc good
+curr addr: 60076000
+va: 60076000
+page 55000 good
+kalloc good
+curr addr: 60077000
+va: 60077000
+page 56000 good
+kalloc good
+curr addr: 60078000
+va: 60078000
+page 57000 good
+kalloc good
+curr addr: 60079000
+va: 60079000
+page 58000 good
+kalloc good
+curr addr: 6007a000
+va: 6007a000
+page 59000 good
+kalloc good
+curr addr: 6007b000
+va: 6007b000
+page 5a000 good
+kalloc good
+curr addr: 6007c000
+va: 6007c000
+page 5b000 good
+kalloc good
+curr addr: 6007d000
+va: 6007d000
+page 5c000 good
+kalloc good
+curr addr: 6007e000
+va: 6007e000
+page 5d000 good
+kalloc good
+curr addr: 6007f000
+va: 6007f000
+page 5e000 good
+kalloc good
+curr addr: 60080000
+va: 60080000
+page 5f000 good
+kalloc good
+curr addr: 60081000
+va: 60081000
+page 60000 good
+kalloc good
+curr addr: 60082000
+va: 60082000
+page 61000 good
+kalloc good
+curr addr: 60083000
+va: 60083000
+page 62000 good
+kalloc good
+curr addr: 60084000
+va: 60084000
+page 63000 good
+kalloc good
+curr addr: 60085000
+va: 60085000
+page 64000 good
+kalloc good
+curr addr: 60086000
+va: 60086000
+page 65000 good
+kalloc good
+curr addr: 60087000
+va: 60087000
+page 66000 good
+kalloc good
+curr addr: 60088000
+va: 60088000
+page 67000 good
+kalloc good
+curr addr: 60089000
+va: 60089000
+page 68000 good
+kalloc good
+curr addr: 6008a000
+va: 6008a000
+page 69000 good
+kalloc good
+curr addr: 6008b000
+va: 6008b000
+page 6a000 good
+kalloc good
+curr addr: 6008c000
+va: 6008c000
+page 6b000 good
+kalloc good
+curr addr: 6008d000
+va: 6008d000
+page 6c000 good
+kalloc good
+curr addr: 6008e000
+va: 6008e000
+page 6d000 good
+kalloc good
+curr addr: 6008f000
+va: 6008f000
+page 6e000 good
+kalloc good
+curr addr: 60090000
+va: 60090000
+page 6f000 good
+kalloc good
+curr addr: 60091000
+va: 60091000
+page 70000 good
+kalloc good
+curr addr: 60092000
+va: 60092000
+page 71000 good
+kalloc good
+curr addr: 60093000
+va: 60093000
+page 72000 good
+kalloc good
+curr addr: 60094000
+va: 60094000
+page 73000 good
+kalloc good
+curr addr: 60095000
+va: 60095000
+page 74000 good
+kalloc good
+curr addr: 60096000
+va: 60096000
+page 75000 good
+kalloc good
+curr addr: 60097000
+va: 60097000
+page 76000 good
+kalloc good
+curr addr: 60098000
+va: 60098000
+page 77000 good
+kalloc good
+curr addr: 60099000
+va: 60099000
+page 78000 good
+kalloc good
+curr addr: 6009a000
+va: 6009a000
+page 79000 good
+kalloc good
+curr addr: 6009b000
+va: 6009b000
+page 7a000 good
+kalloc good
+curr addr: 6009c000
+va: 6009c000
+page 7b000 good
+kalloc good
+curr addr: 6009d000
+va: 6009d000
+page 7c000 good
+kalloc good
+curr addr: 6009e000
+va: 6009e000
+page 7d000 good
+kalloc good
+curr addr: 6009f000
+va: 6009f000
+page 7e000 good
+kalloc good
+curr addr: 600a0000
+va: 600a0000
+page 7f000 good
+kalloc good
+curr addr: 600a1000
+va: 600a1000
+page 80000 good
+kalloc good
+curr addr: 600a2000
+va: 600a2000
+page 81000 good
+kalloc good
+curr addr: 600a3000
+va: 600a3000
+page 82000 good
+kalloc good
+curr addr: 600a4000
+va: 600a4000
+page 83000 good
+kalloc good
+curr addr: 600a5000
+va: 600a5000
+page 84000 good
+kalloc good
+curr addr: 600a6000
+va: 600a6000
+page 85000 good
+kalloc good
+curr addr: 600a7000
+va: 600a7000
+page 86000 good
+kalloc good
+curr addr: 600a8000
+va: 600a8000
+page 87000 good
+kalloc good
+curr addr: 600a9000
+va: 600a9000
+page 88000 good
+kalloc good
+curr addr: 600aa000
+va: 600aa000
+page 89000 good
+kalloc good
+curr addr: 600ab000
+va: 600ab000
+page 8a000 good
+kalloc good
+curr addr: 600ac000
+va: 600ac000
+page 8b000 good
+kalloc good
+curr addr: 600ad000
+va: 600ad000
+page 8c000 good
+kalloc good
+curr addr: 600ae000
+va: 600ae000
+page 8d000 good
+kalloc good
+curr addr: 600af000
+va: 600af000
+page 8e000 good
+kalloc good
+curr addr: 600b0000
+va: 600b0000
+page 8f000 good
+kalloc good
+curr addr: 600b1000
+va: 600b1000
+page 90000 good
+kalloc good
+curr addr: 600b2000
+va: 600b2000
+page 91000 good
+kalloc good
+curr addr: 600b3000
+va: 600b3000
+page 92000 good
+kalloc good
+curr addr: 600b4000
+va: 600b4000
+page 93000 good
+kalloc good
+curr addr: 600b5000
+va: 600b5000
+page 94000 good
+kalloc good
+curr addr: 600b6000
+va: 600b6000
+page 95000 good
+kalloc good
+curr addr: 600b7000
+va: 600b7000
+page 96000 good
+kalloc good
+curr addr: 600b8000
+va: 600b8000
+page 97000 good
+kalloc good
+curr addr: 600b9000
+va: 600b9000
+page 98000 good
+kalloc good
+curr addr: 600ba000
+va: 600ba000
+page 99000 good
+kalloc good
+curr addr: 600bb000
+va: 600bb000
+page 9a000 good
+kalloc good
+curr addr: 600bc000
+va: 600bc000
+page 9b000 good
+kalloc good
+curr addr: 600bd000
+va: 600bd000
+page 9c000 good
+kalloc good
+curr addr: 600be000
+va: 600be000
+page 9d000 good
+kalloc good
+curr addr: 600bf000
+va: 600bf000
+page 9e000 good
+kalloc good
+curr addr: 600c0000
+va: 600c0000
+page 9f000 good
+kalloc good
+curr addr: 600c1000
+va: 600c1000
+page a0000 good
+kalloc good
+curr addr: 600c2000
+va: 600c2000
+page a1000 good
+kalloc good
+curr addr: 600c3000
+va: 600c3000
+page a2000 good
+kalloc good
+curr addr: 600c4000
+va: 600c4000
+page a3000 good
+kalloc good
+curr addr: 600c5000
+va: 600c5000
+page a4000 good
+kalloc good
+curr addr: 600c6000
+va: 600c6000
+page a5000 good
+kalloc good
+curr addr: 600c7000
+va: 600c7000
+page a6000 good
+kalloc good
+curr addr: 600c8000
+va: 600c8000
+page a7000 good
+kalloc good
+curr addr: 600c9000
+va: 600c9000
+page a8000 good
+kalloc good
+curr addr: 600ca000
+va: 600ca000
+page a9000 good
+kalloc good
+curr addr: 600cb000
+va: 600cb000
+page aa000 good
+kalloc good
+curr addr: 600cc000
+va: 600cc000
+page ab000 good
+kalloc good
+curr addr: 600cd000
+va: 600cd000
+page ac000 good
+kalloc good
+curr addr: 600ce000
+va: 600ce000
+page ad000 good
+kalloc good
+curr addr: 600cf000
+va: 600cf000
+page ae000 good
+kalloc good
+curr addr: 600d0000
+va: 600d0000
+page af000 good
+kalloc good
+curr addr: 600d1000
+va: 600d1000
+page b0000 good
+kalloc good
+curr addr: 600d2000
+va: 600d2000
+page b1000 good
+kalloc good
+curr addr: 600d3000
+va: 600d3000
+page b2000 good
+kalloc good
+curr addr: 600d4000
+va: 600d4000
+page b3000 good
+kalloc good
+curr addr: 600d5000
+va: 600d5000
+page b4000 good
+kalloc good
+curr addr: 600d6000
+va: 600d6000
+page b5000 good
+kalloc good
+curr addr: 600d7000
+va: 600d7000
+page b6000 good
+kalloc good
+curr addr: 600d8000
+va: 600d8000
+page b7000 good
+kalloc good
+curr addr: 600d9000
+va: 600d9000
+page b8000 good
+kalloc good
+curr addr: 600da000
+va: 600da000
+page b9000 good
+kalloc good
+curr addr: 600db000
+va: 600db000
+page ba000 good
+kalloc good
+curr addr: 600dc000
+va: 600dc000
+page bb000 good
+kalloc good
+curr addr: 600dd000
+va: 600dd000
+page bc000 good
+kalloc good
+curr addr: 600de000
+va: 600de000
+page bd000 good
+kalloc good
+curr addr: 600df000
+va: 600df000
+page be000 good
+kalloc good
+curr addr: 600e0000
+va: 600e0000
+page bf000 good
+kalloc good
+curr addr: 600e1000
+va: 600e1000
+page c0000 good
+kalloc good
+curr addr: 600e2000
+va: 600e2000
+page c1000 good
+kalloc good
+curr addr: 600e3000
+va: 600e3000
+page c2000 good
+kalloc good
+curr addr: 600e4000
+va: 600e4000
+page c3000 good
+kalloc good
+curr addr: 600e5000
+va: 600e5000
+page c4000 good
+kalloc good
+curr addr: 600e6000
+va: 600e6000
+page c5000 good
+kalloc good
+curr addr: 600e7000
+va: 600e7000
+page c6000 good
+kalloc good
+curr addr: 600e8000
+va: 600e8000
+page c7000 good
+kalloc good
+curr addr: 600e9000
+va: 600e9000
+page c8000 good
+kalloc good
+curr addr: 600ea000
+va: 600ea000
+page c9000 good
+kalloc good
+curr addr: 600eb000
+va: 600eb000
+page ca000 good
+kalloc good
+curr addr: 600ec000
+va: 600ec000
+page cb000 good
+kalloc good
+curr addr: 600ed000
+va: 600ed000
+page cc000 good
+kalloc good
+curr addr: 600ee000
+va: 600ee000
+page cd000 good
+kalloc good
+curr addr: 600ef000
+va: 600ef000
+page ce000 good
+kalloc good
+curr addr: 600f0000
+va: 600f0000
+page cf000 good
+kalloc good
+curr addr: 600f1000
+va: 600f1000
+page d0000 good
+kalloc good
+curr addr: 600f2000
+va: 600f2000
+page d1000 good
+kalloc good
+curr addr: 600f3000
+va: 600f3000
+page d2000 good
+kalloc good
+curr addr: 600f4000
+va: 600f4000
+page d3000 good
+kalloc good
+curr addr: 600f5000
+va: 600f5000
+page d4000 good
+kalloc good
+curr addr: 600f6000
+va: 600f6000
+page d5000 good
+kalloc good
+curr addr: 600f7000
+va: 600f7000
+page d6000 good
+kalloc good
+curr addr: 600f8000
+va: 600f8000
+page d7000 good
+kalloc good
+curr addr: 600f9000
+va: 600f9000
+page d8000 good
+kalloc good
+curr addr: 600fa000
+va: 600fa000
+page d9000 good
+kalloc good
+curr addr: 600fb000
+va: 600fb000
+page da000 good
+kalloc good
+curr addr: 600fc000
+va: 600fc000
+page db000 good
+kalloc good
+curr addr: 600fd000
+va: 600fd000
+page dc000 good
+kalloc good
+curr addr: 600fe000
+va: 600fe000
+page dd000 good
+kalloc good
+curr addr: 600ff000
+va: 600ff000
+page de000 good
+kalloc good
+curr addr: 60100000
+va: 60100000
+page df000 good
+kalloc good
+curr addr: 60101000
+va: 60101000
+page e0000 good
+kalloc good
+curr addr: 60102000
+va: 60102000
+page e1000 good
+kalloc good
+curr addr: 60103000
+va: 60103000
+page e2000 good
+kalloc good
+curr addr: 60104000
+va: 60104000
+page e3000 good
+kalloc good
+curr addr: 60105000
+va: 60105000
+page e4000 good
+kalloc good
+curr addr: 60106000
+va: 60106000
+page e5000 good
+kalloc good
+curr addr: 60107000
+va: 60107000
+page e6000 good
+kalloc good
+curr addr: 60108000
+va: 60108000
+page e7000 good
+kalloc good
+curr addr: 60109000
+va: 60109000
+page e8000 good
+kalloc good
+curr addr: 6010a000
+va: 6010a000
+page e9000 good
+kalloc good
+curr addr: 6010b000
+va: 6010b000
+page ea000 good
+kalloc good
+curr addr: 6010c000
+va: 6010c000
+page eb000 good
+kalloc good
+curr addr: 6010d000
+va: 6010d000
+page ec000 good
+kalloc good
+curr addr: 6010e000
+va: 6010e000
+page ed000 good
+kalloc good
+curr addr: 6010f000
+va: 6010f000
+page ee000 good
+kalloc good
+curr addr: 60110000
+va: 60110000
+page ef000 good
+kalloc good
+curr addr: 60111000
+va: 60111000
+page f0000 good
+kalloc good
+curr addr: 60112000
+va: 60112000
+page f1000 good
+kalloc good
+curr addr: 60113000
+va: 60113000
+page f2000 good
+kalloc good
+curr addr: 60114000
+va: 60114000
+page f3000 good
+kalloc good
+curr addr: 60115000
+va: 60115000
+page f4000 good
+kalloc good
+curr addr: 60116000
+va: 60116000
+page f5000 good
+kalloc good
+curr addr: 60117000
+va: 60117000
+page f6000 good
+kalloc good
+curr addr: 60118000
+va: 60118000
+page f7000 good
+kalloc good
+curr addr: 60119000
+va: 60119000
+page f8000 good
+kalloc good
+curr addr: 6011a000
+va: 6011a000
+page f9000 good
+kalloc good
+curr addr: 6011b000
+va: 6011b000
+page fa000 good
+kalloc good
+curr addr: 6011c000
+va: 6011c000
+page fb000 good
+kalloc good
+curr addr: 6011d000
+va: 6011d000
+page fc000 good
+kalloc good
+curr addr: 6011e000
+va: 6011e000
+page fd000 good
+kalloc good
+curr addr: 6011f000
+va: 6011f000
+page fe000 good
+kalloc good
+curr addr: 60120000
+va: 60120000
+page ff000 good
+kalloc good
+curr addr: 60121000
+va: 60121000
+page 100000 good
+kalloc good
+curr addr: 60122000
+va: 60122000
+page 101000 good
+kalloc good
+curr addr: 60123000
+va: 60123000
+page 102000 good
+kalloc good
+curr addr: 60124000
+va: 60124000
+page 103000 good
+kalloc good
+curr addr: 60125000
+va: 60125000
+page 104000 good
+kalloc good
+curr addr: 60126000
+va: 60126000
+page 105000 good
+kalloc good
+curr addr: 60127000
+va: 60127000
+page 106000 good
+kalloc good
+curr addr: 60128000
+va: 60128000
+page 107000 good
+kalloc good
+curr addr: 60129000
+va: 60129000
+page 108000 good
+kalloc good
+curr addr: 6012a000
+va: 6012a000
+page 109000 good
+kalloc good
+curr addr: 6012b000
+va: 6012b000
+page 10a000 good
+kalloc good
+curr addr: 6012c000
+va: 6012c000
+page 10b000 good
+kalloc good
+curr addr: 6012d000
+va: 6012d000
+page 10c000 good
+kalloc good
+curr addr: 6012e000
+va: 6012e000
+page 10d000 good
+kalloc good
+curr addr: 6012f000
+va: 6012f000
+page 10e000 good
+kalloc good
+curr addr: 60130000
+va: 60130000
+page 10f000 good
+kalloc good
+curr addr: 60131000
+va: 60131000
+page 110000 good
+kalloc good
+curr addr: 60132000
+va: 60132000
+page 111000 good
+kalloc good
+curr addr: 60133000
+va: 60133000
+page 112000 good
+kalloc good
+curr addr: 60134000
+va: 60134000
+page 113000 good
+kalloc good
+curr addr: 60135000
+va: 60135000
+page 114000 good
+kalloc good
+curr addr: 60136000
+va: 60136000
+page 115000 good
+kalloc good
+curr addr: 60137000
+va: 60137000
+page 116000 good
+kalloc good
+curr addr: 60138000
+va: 60138000
+page 117000 good
+kalloc good
+curr addr: 60139000
+va: 60139000
+page 118000 good
+kalloc good
+curr addr: 6013a000
+va: 6013a000
+page 119000 good
+kalloc good
+curr addr: 6013b000
+va: 6013b000
+page 11a000 good
+kalloc good
+curr addr: 6013c000
+va: 6013c000
+page 11b000 good
+kalloc good
+curr addr: 6013d000
+va: 6013d000
+page 11c000 good
+kalloc good
+curr addr: 6013e000
+va: 6013e000
+page 11d000 good
+kalloc good
+curr addr: 6013f000
+va: 6013f000
+page 11e000 good
+kalloc good
+curr addr: 60140000
+va: 60140000
+page 11f000 good
+kalloc good
+curr addr: 60141000
+va: 60141000
+page 120000 good
+kalloc good
+curr addr: 60142000
+va: 60142000
+page 121000 good
+kalloc good
+curr addr: 60143000
+va: 60143000
+page 122000 good
+kalloc good
+curr addr: 60144000
+va: 60144000
+page 123000 good
+kalloc good
+curr addr: 60145000
+va: 60145000
+page 124000 good
+kalloc good
+curr addr: 60146000
+va: 60146000
+page 125000 good
+kalloc good
+curr addr: 60147000
+va: 60147000
+page 126000 good
+kalloc good
+curr addr: 60148000
+va: 60148000
+page 127000 good
+kalloc good
+curr addr: 60149000
+va: 60149000
+page 128000 good
+kalloc good
+curr addr: 6014a000
+va: 6014a000
+page 129000 good
+kalloc good
+curr addr: 6014b000
+va: 6014b000
+page 12a000 good
+kalloc good
+curr addr: 6014c000
+va: 6014c000
+page 12b000 good
+kalloc good
+curr addr: 6014d000
+va: 6014d000
+page 12c000 good
+kalloc good
+curr addr: 6014e000
+va: 6014e000
+page 12d000 good
+kalloc good
+curr addr: 6014f000
+va: 6014f000
+page 12e000 good
+kalloc good
+curr addr: 60150000
+va: 60150000
+page 12f000 good
+kalloc good
+curr addr: 60151000
+va: 60151000
+page 130000 good
+kalloc good
+curr addr: 60152000
+va: 60152000
+page 131000 good
+kalloc good
+curr addr: 60153000
+va: 60153000
+page 132000 good
+kalloc good
+curr addr: 60154000
+va: 60154000
+page 133000 good
+kalloc good
+curr addr: 60155000
+va: 60155000
+page 134000 good
+kalloc good
+curr addr: 60156000
+va: 60156000
+page 135000 good
+kalloc good
+curr addr: 60157000
+va: 60157000
+page 136000 good
+kalloc good
+curr addr: 60158000
+va: 60158000
+page 137000 good
+kalloc good
+curr addr: 60159000
+va: 60159000
+page 138000 good
+kalloc good
+curr addr: 6015a000
+va: 6015a000
+page 139000 good
+kalloc good
+curr addr: 6015b000
+va: 6015b000
+page 13a000 good
+kalloc good
+curr addr: 6015c000
+va: 6015c000
+page 13b000 good
+kalloc good
+curr addr: 6015d000
+va: 6015d000
+page 13c000 good
+kalloc good
+curr addr: 6015e000
+va: 6015e000
+page 13d000 good
+kalloc good
+curr addr: 6015f000
+va: 6015f000
+page 13e000 good
+kalloc good
+curr addr: 60160000
+va: 60160000
+page 13f000 good
+kalloc good
+curr addr: 60161000
+va: 60161000
+page 140000 good
+kalloc good
+curr addr: 60162000
+va: 60162000
+page 141000 good
+kalloc good
+curr addr: 60163000
+va: 60163000
+page 142000 good
+kalloc good
+curr addr: 60164000
+va: 60164000
+page 143000 good
+kalloc good
+curr addr: 60165000
+va: 60165000
+page 144000 good
+kalloc good
+curr addr: 60166000
+va: 60166000
+page 145000 good
+kalloc good
+curr addr: 60167000
+va: 60167000
+page 146000 good
+kalloc good
+curr addr: 60168000
+va: 60168000
+page 147000 good
+kalloc good
+curr addr: 60169000
+va: 60169000
+page 148000 good
+kalloc good
+curr addr: 6016a000
+va: 6016a000
+page 149000 good
+kalloc good
+curr addr: 6016b000
+va: 6016b000
+page 14a000 good
+kalloc good
+curr addr: 6016c000
+va: 6016c000
+page 14b000 good
+kalloc good
+curr addr: 6016d000
+va: 6016d000
+page 14c000 good
+kalloc good
+curr addr: 6016e000
+va: 6016e000
+page 14d000 good
+kalloc good
+curr addr: 6016f000
+va: 6016f000
+page 14e000 good
+kalloc good
+curr addr: 60170000
+va: 60170000
+page 14f000 good
+kalloc good
+curr addr: 60171000
+va: 60171000
+page 150000 good
+kalloc good
+curr addr: 60172000
+va: 60172000
+page 151000 good
+kalloc good
+curr addr: 60173000
+va: 60173000
+page 152000 good
+kalloc good
+curr addr: 60174000
+va: 60174000
+page 153000 good
+kalloc good
+curr addr: 60175000
+va: 60175000
+page 154000 good
+kalloc good
+curr addr: 60176000
+va: 60176000
+page 155000 good
+kalloc good
+curr addr: 60177000
+va: 60177000
+page 156000 good
+kalloc good
+curr addr: 60178000
+va: 60178000
+page 157000 good
+kalloc good
+curr addr: 60179000
+va: 60179000
+page 158000 good
+kalloc good
+curr addr: 6017a000
+va: 6017a000
+page 159000 good
+kalloc good
+curr addr: 6017b000
+va: 6017b000
+page 15a000 good
+kalloc good
+curr addr: 6017c000
+va: 6017c000
+page 15b000 good
+kalloc good
+curr addr: 6017d000
+va: 6017d000
+page 15c000 good
+kalloc good
+curr addr: 6017e000
+va: 6017e000
+page 15d000 good
+kalloc good
+curr addr: 6017f000
+va: 6017f000
+page 15e000 good
+kalloc good
+curr addr: 60180000
+va: 60180000
+page 15f000 good
+kalloc good
+curr addr: 60181000
+va: 60181000
+page 160000 good
+kalloc good
+curr addr: 60182000
+va: 60182000
+page 161000 good
+kalloc good
+curr addr: 60183000
+va: 60183000
+page 162000 good
+kalloc good
+curr addr: 60184000
+va: 60184000
+page 163000 good
+kalloc good
+curr addr: 60185000
+va: 60185000
+page 164000 good
+kalloc good
+curr addr: 60186000
+va: 60186000
+page 165000 good
+kalloc good
+curr addr: 60187000
+va: 60187000
+page 166000 good
+kalloc good
+curr addr: 60188000
+va: 60188000
+page 167000 good
+kalloc good
+curr addr: 60189000
+va: 60189000
+page 168000 good
+kalloc good
+curr addr: 6018a000
+va: 6018a000
+page 169000 good
+kalloc good
+curr addr: 6018b000
+va: 6018b000
+page 16a000 good
+kalloc good
+curr addr: 6018c000
+va: 6018c000
+page 16b000 good
+kalloc good
+curr addr: 6018d000
+va: 6018d000
+page 16c000 good
+kalloc good
+curr addr: 6018e000
+va: 6018e000
+page 16d000 good
+kalloc good
+curr addr: 6018f000
+va: 6018f000
+page 16e000 good
+kalloc good
+curr addr: 60190000
+va: 60190000
+page 16f000 good
+kalloc good
+curr addr: 60191000
+va: 60191000
+page 170000 good
+kalloc good
+curr addr: 60192000
+va: 60192000
+page 171000 good
+kalloc good
+curr addr: 60193000
+va: 60193000
+page 172000 good
+kalloc good
+curr addr: 60194000
+va: 60194000
+page 173000 good
+kalloc good
+curr addr: 60195000
+va: 60195000
+page 174000 good
+kalloc good
+curr addr: 60196000
+va: 60196000
+page 175000 good
+kalloc good
+curr addr: 60197000
+va: 60197000
+page 176000 good
+kalloc good
+curr addr: 60198000
+va: 60198000
+page 177000 good
+kalloc good
+curr addr: 60199000
+va: 60199000
+page 178000 good
+kalloc good
+curr addr: 6019a000
+va: 6019a000
+page 179000 good
+kalloc good
+curr addr: 6019b000
+va: 6019b000
+page 17a000 good
+kalloc good
+curr addr: 6019c000
+va: 6019c000
+page 17b000 good
+kalloc good
+curr addr: 6019d000
+va: 6019d000
+page 17c000 good
+kalloc good
+curr addr: 6019e000
+va: 6019e000
+page 17d000 good
+kalloc good
+curr addr: 6019f000
+va: 6019f000
+page 17e000 good
+kalloc good
+curr addr: 601a0000
+va: 601a0000
+page 17f000 good
+kalloc good
+curr addr: 601a1000
+va: 601a1000
+page 180000 good
+kalloc good
+curr addr: 601a2000
+va: 601a2000
+page 181000 good
+kalloc good
+curr addr: 601a3000
+va: 601a3000
+page 182000 good
+kalloc good
+curr addr: 601a4000
+va: 601a4000
+page 183000 good
+kalloc good
+curr addr: 601a5000
+va: 601a5000
+page 184000 good
+kalloc good
+curr addr: 601a6000
+va: 601a6000
+page 185000 good
+kalloc good
+curr addr: 601a7000
+va: 601a7000
+page 186000 good
+kalloc good
+curr addr: 601a8000
+va: 601a8000
+page 187000 good
+kalloc good
+curr addr: 601a9000
+va: 601a9000
+page 188000 good
+kalloc good
+curr addr: 601aa000
+va: 601aa000
+page 189000 good
+kalloc good
+curr addr: 601ab000
+va: 601ab000
+page 18a000 good
+kalloc good
+curr addr: 601ac000
+va: 601ac000
+page 18b000 good
+kalloc good
+curr addr: 601ad000
+va: 601ad000
+page 18c000 good
+kalloc good
+curr addr: 601ae000
+va: 601ae000
+page 18d000 good
+kalloc good
+curr addr: 601af000
+va: 601af000
+page 18e000 good
+kalloc good
+curr addr: 601b0000
+va: 601b0000
+page 18f000 good
+kalloc good
+curr addr: 601b1000
+va: 601b1000
+page 190000 good
+Map 1 is placed at 0x60021000. 	Okay.
+addr: ffffffff
+address invalid
+Map 2 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 3 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 4 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 5 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 6 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 7 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 8 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 9 is placed at 0xFFFFFFFF. 	Okay.
+addr: ffffffff
+address invalid
+Map 10 is placed at 0xFFFFFFFF. 	Okay.
+Map 1 ~ 10 do not overlap with each other. 	Okay
+Cause: expected 10 maps, but found 1
 
 WMMAP	 FAILED
 
 
-test test_7 FAILED (0 of 1)
- (Places multiple maps at different addresses.)
+test test_8 FAILED (0 of 1)
+ (Places a large number of anonymous maps at fixed and non-fixed addresses)
  tester failed
 
-Skipped 6 tests.
+Skipped 5 tests.
 To keep testing after failing a test, use flag '-c' or '--continue'

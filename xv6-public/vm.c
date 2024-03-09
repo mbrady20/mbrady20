@@ -63,6 +63,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
   char *a, *last;
   pte_t *pte;
+  cprintf("va: %x\n", (int)va);
 
   a = (char *)PGROUNDDOWN((uint)va);
   last = (char *)PGROUNDDOWN(((uint)va) + size - 1);
@@ -72,6 +73,7 @@ int mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
       cprintf("invalid\n");
       return -1;
     }
+    
     if (*pte & PTE_P) {
       cprintf("tags invalid\n");
       return -1;

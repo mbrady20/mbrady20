@@ -139,6 +139,33 @@ int removeValue(int startAddress)
   return 1;
 }
 
+// Return the address of the PTE in page table pgdir
+// that corresponds to virtual address va.  If alloc!=0,
+// create any required page table pages.
+pte_t *
+psuedowalkpgdir(pde_t *pgdir, const void *va, int alloc)
+{
+  pde_t *pde;
+  pte_t *pgtab;
+
+  pde = &pgdir[PDX(va)];
+  if (*pde & PTE_P)
+  {
+    pgtab = (pte_t *)P2V(PTE_ADDR(*pde));
+  }
+  else
+  {
+    if (!alloc || (pgtab = (pte_t *)kalloc()) == 0) {
+      memset(pgtab, 0, PGSIZE);
+      return 0;
+    }
+      
+    // Make sure all those PTE_P bits are zero.
+    memset(pgtab, 0, PGSIZE);
+  }
+  return &pgtab[PTX(va)];
+}
+
 uint find_free_space(struct proc * curproc, int length, uint addr) {
   char *a;
   pte_t *pte;
@@ -150,120 +177,31 @@ uint find_free_space(struct proc * curproc, int length, uint addr) {
 
     a = (char *)PGROUNDDOWN((uint)addr);
     
-    if ((pte = walkpgdir(curproc->pgdir, a, 1)) == 0)
+    if ((pte = psuedowalkpgdir(curproc->pgdir, a, 1)) == 0)
         return -1;
-    if (*pte & PTE_P) {
+    if (*pte & PTE_P || *pte & PTE_U) {
       addr = addr + PGSIZE;
     } else {
       int validPages = 0;
-      for (int j = 0; j < PGROUNDUP(length + PGSIZE) / PGSIZE; j++) {
-        pte_t *next_pte = walkpgdir(curproc->pgdir, a + j * PGSIZE, 1);
-        if (next_pte && !(*next_pte & PTE_P)) {
+      for (int j = 0; j < (((length)+PGSIZE) / PGSIZE); j++) {
+        pte_t *next_pte = psuedowalkpgdir(curproc->pgdir, a + j * PGSIZE, 1);
+        if (next_pte && !(*next_pte & PTE_P) && !(*next_pte & PTE_U)) {
           validPages++;
         } 
       }
 
-      if (validPages == (PGROUNDUP(length + PGSIZE) / PGSIZE) ) {
+      if (validPages >= (((length)+PGSIZE) / PGSIZE) ) {
         cprintf("Success at addr: %x\n", addr);
         return addr;
       } else {
         // Increment addr even if a suitable range is not found
+        validPages = 0;
         addr = addr + PGSIZE;
       }
     }
   } while (addr < KERNBASE); // Stop the loop when addr reaches KERNBASE
 
   return -1;
-}
-
-uint wmap(uint addr, int length, int flags, int fd)
-{
-  struct proc *curproc = myproc();
-  pde_t *pgdir = curproc->pgdir;
-
-  if (hashInit == -1)
-  {
-    initHashTable();
-    hashInit = 1;
-  }
-
-  // If MAP_FIXED flag is not set, find a suitable address
-  if (!(flags & MAP_FIXED))
-  {
-    addr = find_free_space(curproc, length, addr);
-    if (addr == 0 || addr < 0) {
-      cprintf("addr invalid: %x\n", addr);
-      return -1; // No suitable address found
-    }
-  }
-  else
-  {
-    // Check if the address is valid
-    if (addr < 0x60000000 || addr >= 0x80000000) {
-      cprintf("address invalid\n");
-      return -1;
-    }
-  }
-  cprintf("addr good\n");
-
-  // Check if the length is valid
-  if (length <= 0) {
-    cprintf("length invalid\n");
-    return -1;
-  }
-
-  int i;
-  // Allocate physical memory and map it to the virtual address space
-  for (i = 0; i < length; i += PGSIZE)
-  {
-    char *mem = kalloc();
-    if (mem == 0) {
-      cprintf("mem invalid\n");
-      return -1;
-    }
-    cprintf("kalloc good\n");
-    
-    cprintf("curr addr: %x\n", addr + i);
-    if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
-    {
-      for (uint j = 0; j < i; j += PGSIZE)
-      {
-        pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
-        kfree(P2V(PTE_ADDR(*pte)));
-        *pte = 0;
-      }
-      cprintf("map invalid\n");
-      return FAILED;
-    }
-
-    cprintf("page %p good\n", i);
-  }
-
-  // memory successfully added bc no errors
-
-  hashInsert(addr, length, i + 1);
-  return addr;
-}
-
-int wunmap(uint addr)
-{
-  struct proc *curproc = myproc();
-  pde_t *pgdir = curproc->pgdir;
-
-  memHashNode *node = hashSearch(addr);
-
-  if (node == 0)
-    return -1; // no memory at this starting address
-
-  for (uint i = 0; i < node->numPages; ++i)
-  {
-    pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
-    kfree(P2V(PTE_ADDR(*pte)));
-    *pte = 0;
-  }
-
-  removeValue(addr); // it says in the writeup to remove any metadata we stored first ... I don't see a reason we can't do it after as of now.
-  return 1;
 }
 
 int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
@@ -296,6 +234,149 @@ int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
 
   pdinfo->n_upages = count;
   return 0;
+}
+
+uint wmap(uint addr, int length, int flags, int fd)
+{
+  struct proc *curproc = myproc();
+  pde_t *pgdir = curproc->pgdir;
+
+  if (hashInit == -1)
+  {
+    initHashTable();
+    hashInit = 1;
+  }
+
+  cprintf("addr: %x\n", addr);
+  // If MAP_FIXED flag is not set, find a suitable address
+  if ((flags & MAP_FIXED))
+  {
+      {
+      // Check if the address is valid
+      if (addr < 0x60000000 || addr >= 0x80000000) {
+        cprintf("address invalid\n");
+        return -1;
+      }
+      }
+      cprintf("addr good\n");
+
+      // Check if the length is valid
+      if (length <= 0) {
+      cprintf("length invalid\n");
+      return -1;
+    }
+
+    int i;
+    // Allocate physical memory and map it to the virtual address space
+    for (i = 0; i < length; i += PGSIZE)
+    {
+      char *mem = kalloc();
+      if (mem == 0) {
+        cprintf("mem invalid\n");
+        return -1;
+      }
+      cprintf("kalloc good\n");
+      
+      cprintf("curr addr: %x\n", addr + i);
+
+      if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
+      {
+        for (uint j = 0; j < i; j += PGSIZE)
+        {
+          pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+          kfree(P2V(PTE_ADDR(*pte)));
+          *pte = 0;
+        }
+        cprintf("map invalid\n");
+        return FAILED;
+      }
+
+      cprintf("page %p good\n", i);
+    }
+
+    // memory successfully added bc no errors
+
+    hashInsert(addr, length, i + 1);
+    return addr;
+    
+  } else { // brute force!!!
+    int numAttempts = 0;
+    do {
+        numAttempts++;
+        addr += 0x1000;
+        {
+        // Check if the address is valid
+        if (addr < 0x60000000 || addr >= 0x80000000) {
+          cprintf("address invalid\n");
+          return -1;
+        }
+      }
+      cprintf("addr good\n");
+
+      // Check if the length is valid
+      if (length <= 0) {
+        cprintf("length invalid\n");
+        return -1;
+      }
+
+      int k = 0;
+      int i;
+      // Allocate physical memory and map it to the virtual address space
+      for (i = 0; i < length; i += PGSIZE)
+      {
+        char *mem = kalloc();
+        if (mem == 0) {
+          cprintf("mem invalid\n");
+          return -1;
+        }
+        cprintf("kalloc good\n");
+        
+        cprintf("curr addr: %x\n", addr + i);
+
+        if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
+        {
+          for (uint j = 0; j < i; j += PGSIZE)
+          {
+            pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+            kfree(P2V(PTE_ADDR(*pte)));
+            *pte = 0;
+          }
+          cprintf("map invalid\n");
+          k = 1;
+          break;
+        }
+        if (k == 1) continue;
+
+        cprintf("page %p good\n", i);
+      }
+
+      // memory successfully added bc no errors
+
+      hashInsert(addr, length, i + 1);
+      return addr;
+    } while (numAttempts  <= (KERNBASE - MMAPBASE) / 0x1000);
+  }
+}
+
+int wunmap(uint addr)
+{
+  struct proc *curproc = myproc();
+  pde_t *pgdir = curproc->pgdir;
+
+  memHashNode *node = hashSearch(addr);
+
+  if (node == 0)
+    return -1; // no memory at this starting address
+
+  for (uint i = 0; i < node->numPages; ++i)
+  {
+    pte_t *pte = walkpgdir(pgdir, (void *)(addr + (i * PGSIZE)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+    kfree(P2V(PTE_ADDR(*pte)));
+    *pte = 0;
+  }
+
+  removeValue(addr); // it says in the writeup to remove any metadata we stored first ... I don't see a reason we can't do it after as of now.
+  return 1;
 }
 
 /*
