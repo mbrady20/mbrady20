@@ -35,5 +35,10 @@ typedef struct memHashNode
     uint startAddress;
     int numPages;
     int length;
+    int fd;
+    int flags;
+    int loaded[12050];
     struct memHashNode *next;
 } memHashNode;
+
+extern memHashNode *pageInMappings(int address);

@@ -8,17 +8,10 @@
 #include "proc.h"
 #include "wmap.h"
 
-// typedef struct memHashNode
-// {
-//     uint startAddress;
-//     int numPages;
-//     int length;
-//     struct memHashNode *next;
-// } memHashNode;
-
 // Declare hashtable
 memHashNode table[MEM_HASH_SIZE];
 memHashNode nodePool[MAX_WMMAP_INFO];
+memHashNode *mostRecent;
 int hashInit = -1;
 int poolCounter = 0;
 
@@ -56,7 +49,7 @@ void initHashTable()
   }
 }
 
-void hashInsert(uint startAddress, int length, int numPages)
+void hashInsert(uint startAddress, int length, int numPages, int fd, int flags)
 {
   int index = hash(startAddress);
 
@@ -66,6 +59,11 @@ void hashInsert(uint startAddress, int length, int numPages)
     table[index].startAddress = startAddress;
     table[index].length = length;
     table[index].numPages = numPages;
+    table[index].fd = fd;
+    table[index].flags = flags;
+    for (int i = 0; i < 12050; i++)
+      table[index].loaded[i] = 0;
+    mostRecent = &table[index];
     // No need to allocate for the first item as it uses the table's array directly
   }
   else
@@ -75,8 +73,13 @@ void hashInsert(uint startAddress, int length, int numPages)
     newNode->startAddress = startAddress;
     newNode->length = length;
     newNode->numPages = numPages;
+    newNode->fd = fd;
+    newNode->flags = flags;
     newNode->next = table[index].next;
+    for (int i = 0; i < 12050; i++)
+      newNode->loaded[i] = 0;
     table[index].next = newNode;
+    mostRecent = newNode;
   }
 }
 
@@ -139,85 +142,6 @@ int removeValue(int startAddress)
   return 1;
 }
 
-// Return the address of the PTE in page table pgdir
-// that corresponds to virtual address va.  If alloc!=0,
-// create any required page table pages.
-pte_t *
-psuedowalkpgdir(pde_t *pgdir, const void *va, int alloc)
-{
-  pde_t *pde;
-  pte_t *pgtab;
-
-  pde = &pgdir[PDX(va)];
-  if (*pde & PTE_P)
-  {
-    pgtab = (pte_t *)P2V(PTE_ADDR(*pde));
-  }
-  else
-  {
-    if (!alloc || (pgtab = (pte_t *)kalloc()) == 0)
-    {
-      memset(pgtab, 0, PGSIZE);
-      return 0;
-    }
-
-    // Make sure all those PTE_P bits are zero.
-    memset(pgtab, 0, PGSIZE);
-  }
-  return &pgtab[PTX(va)];
-}
-
-uint find_free_space(struct proc *curproc, int length, uint addr)
-{
-  char *a;
-  pte_t *pte;
-
-  a = (char *)PGROUNDDOWN((uint)addr);
-
-  do
-  {
-    if (addr >= KERNBASE)
-    {
-      addr = MMAPBASE;
-    }
-
-    a = (char *)PGROUNDDOWN((uint)addr);
-
-    if ((pte = psuedowalkpgdir(curproc->pgdir, a, 1)) == 0)
-      return -1;
-    if (*pte & PTE_P || *pte & PTE_U)
-    {
-      addr = addr + PGSIZE;
-    }
-    else
-    {
-      int validPages = 0;
-      for (int j = 0; j < (((length) + PGSIZE) / PGSIZE); j++)
-      {
-        pte_t *next_pte = psuedowalkpgdir(curproc->pgdir, a + j * PGSIZE, 1);
-        if (next_pte && !(*next_pte & PTE_P) && !(*next_pte & PTE_U))
-        {
-          validPages++;
-        }
-      }
-
-      if (validPages >= (((length) + PGSIZE) / PGSIZE))
-      {
-        //      cprintf("Success at addr: %x\n", addr);
-        return addr;
-      }
-      else
-      {
-        // Increment addr even if a suitable range is not found
-        validPages = 0;
-        addr = addr + PGSIZE;
-      }
-    }
-  } while (addr < KERNBASE); // Stop the loop when addr reaches KERNBASE
-
-  return -1;
-}
-
 int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
 {
   pde_t *pgdir;
@@ -237,23 +161,29 @@ int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
         {
           if (count < MAX_UPAGE_INFO)
           {
-            pdinfo->va[count] = i * PGSIZE + j * PGSIZE;
+            pdinfo->va[count] = (i * PGSIZE * NPTENTRIES) + j * PGSIZE;
             pdinfo->pa[count] = PTE_ADDR(pgtab[j]);
+
+            cprintf("va: %x, pa: %x\n", pdinfo->va[count], pdinfo->pa[count]);
           }
           count++;
         }
       }
     }
   }
-
   pdinfo->n_upages = count;
   return 0;
 }
 
 uint wmap(uint addr, int length, int flags, int fd)
 {
-  struct proc *curproc = myproc();
-  pde_t *pgdir = curproc->pgdir;
+  // struct proc *curproc = myproc();
+  // pde_t *pgdir = curproc->pgdir;
+  // struct file *file = curproc->ofile[fd];
+  if (addr % 4096 != 0)
+  {
+    addr = PGROUNDDOWN(addr);
+  }
 
   if (hashInit == -1)
   {
@@ -263,139 +193,207 @@ uint wmap(uint addr, int length, int flags, int fd)
   // Check if the length is valid
   if (length <= 0)
   {
-    //        cprintf("length invalid\n");
     return -1;
   }
-  // cprintf("len: %d\n", length);
-
-  // cprintf("addr: %x\n", addr);
-  //  If MAP_FIXED flag is not set, find a suitable address
-  if ((flags & MAP_FIXED))
+  int roundLength;
+  if (length % PGSIZE != 0)
   {
-    cprintf("fixed\n");
-    {
-      // Check if the address is valid
-      if (addr < 0x60000000 || addr >= 0x80000000)
-      {
-        //    cprintf("address invalid\n");
-        return -1;
-      }
-    }
-
-    int i;
-    // Allocate physical memory and map it to the virtual address space
-    for (i = 0; i < length; i += PGSIZE)
-    {
-
-      char *mem = kalloc();
-      if (mem == 0)
-      {
-        //    cprintf("mem invalid\n");
-        return -1;
-      }
-      // cprintf("kalloc good\n");
-
-      if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
-      {
-        for (uint j = 0; j < i; j += PGSIZE)
-        {
-          pte_t *pte = walkpgdir(pgdir, (void *)(addr + (j)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
-          kfree(P2V(PTE_ADDR(*pte)));
-          *pte = 0;
-        }
-        //     cprintf("map invalid\n");
-        return FAILED;
-      }
-
-      //  cprintf("page %p good\n", i);
-    }
-
-    // memory successfully added bc no errors
-
-    //  cprintf("addr: %x, length:%d\n", addr, length);
-    cprintf("FIXED: addr: %x, length:%d\n", addr, length / PGSIZE);
-    hashInsert(addr, length, i / PGSIZE);
-    return addr;
+    roundLength = length + (PGSIZE - (length % PGSIZE));
   }
   else
-  { // brute force!!!
+  {
+    roundLength = length;
+  }
 
-    //  cprintf("brute force\n");
+  //  If MAP_FIXED flag is set
+  if ((flags & MAP_FIXED))
+  {
+    // Check if the address is valid
+    if (addr < 0x60000000 || addr >= 0x80000000)
+    {
+      //    cprintf("address invalid\n");
+      return FAILED;
+    }
+    else if (pageInMappings(addr) != 0)
+    {
+      return FAILED;
+    }
+  }
+  else
+  {
+    memHashNode *node = pageInMappings(addr);
+    if (node == 0)
+    {
+
+      addr = mostRecent->startAddress + mostRecent->numPages * PGSIZE;
+    }
+    else
+    {
+      addr = node->startAddress + node->numPages * PGSIZE;
+    }
     if (addr < 0x60000000 || addr >= 0x80000000)
     {
       addr = MMAPBASE;
     }
-    else if (addr % 4096 != 0)
-    {
-      addr = PGROUNDDOWN(addr);
-    }
+    int baseAddr = addr;
 
-    uint beginAddr = addr;
-    int numAttempts = 0;
-    int i;
     do
     {
-      if (addr >= KERNBASE)
+      int i;
+      for (i = 0; i < roundLength; i += PGSIZE)
       {
-        addr = MMAPBASE;
-      }
-      // cprintf("addr: %x\n", addr);
-
-      //     cprintf("addr good\n");
-
-      // Allocate physical memory and map it to the virtual address space
-      //   cprintf("addr: %x\n", addr);
-      for (i = 0; i < length; i += PGSIZE)
-      {
-        char *mem = kalloc();
-        if (mem == 0)
-        {
-          //  cprintf("mem invalid\n");
-          return -1;
-        }
-        //      cprintf("kalloc good\n");
-
-        if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
-        {
-          //    cprintf("mappages failed\n");
-          for (uint j = 0; j < i; j += PGSIZE)
-          {
-            // cprintf("i: %d, j: %d\n", i, j);
-            pte_t *pte = walkpgdir(pgdir, (void *)(addr + (j)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
-            kfree(P2V(PTE_ADDR(*pte)));
-            *pte = 0;
-          }
-
+        if (pageInMappings(addr + i) != 0)
           break;
-        }
-        else if (i >= length - PGSIZE)
-        {
-          goto createMap;
-        }
-
-        //   cprintf("page %p good\n", i);
       }
+      if (i == roundLength)
+        goto createMap;
 
-      // memory successfully added bc no errors
-      numAttempts++;
-      if (hashSearch(addr) == 0)
+      memHashNode *newNode = pageInMappings(addr + i);
+      if (newNode == 0)
         addr += 0x1000;
       else
       {
-        cprintf("%d\n", hashSearch(addr)->numPages);
-        addr += hashSearch(addr)->numPages * PGSIZE;
+        addr = newNode->startAddress + newNode->numPages * PGSIZE;
       }
-      //  cprintf("addr: %x, length:%d\n", addr, length);
-      // cprintf("addr: %x, length:%d\n", addr, length / PGSIZE);
 
-    } while (addr != beginAddr);
-
-    return -1;
-  createMap:
-    hashInsert(addr, length, i / PGSIZE);
-    cprintf("addr: %x, length:%d\n", addr, length / PGSIZE);
-    return addr;
+    } while (baseAddr != addr);
   }
+
+//   int i;
+//   // Allocate physical memory and map it to the virtual address space
+//   for (i = 0; i < roundLength; i += PGSIZE)
+//   {
+
+//     char *mem = kalloc();
+//     if (mem == 0)
+//     {
+//       cprintf("mem invalid\n");
+//       return -1;
+//     }
+//     // cprintf("kalloc good\n");
+
+//     if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
+//     {
+//       for (uint j = 0; j < i; j += PGSIZE)
+//       {
+//         pte_t *pte = walkpgdir(pgdir, (void *)(addr + (j)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+//         kfree(P2V(PTE_ADDR(*pte)));
+//         *pte = 0;
+//       }
+//       cprintf("map invalid\n");
+//       return FAILED;
+//     }
+
+//     //  cprintf("page %p good\n", i);
+//   }
+//   if (!(flags & MAP_ANONYMOUS))
+//   {
+
+//     int readBytes = fileread(file, (void *)addr, length);
+//     if (readBytes < 0)
+//     {
+//       // Handle read failure
+//       return -1;
+//     }
+//   }
+//   // memory successfully added bc no errors
+
+//   //  cprintf("addr: %x, length:%d\n", addr, length);
+//   // cprintf("FIXED: addr: %x, length:%d\n", addr, i / PGSIZE);
+//   hashInsert(addr, length, (roundLength / PGSIZE), fd, flags);
+//   return addr;
+// }
+// else
+// { // brute force!!!
+
+//   //  cprintf("brute force\n");
+//   if (addr < 0x60000000 || addr >= 0x80000000)
+//   {
+//     addr = MMAPBASE;
+//   }
+//   else if (addr % 4096 != 0)
+//   {
+//     addr = PGROUNDDOWN(addr);
+//   }
+
+//   uint beginAddr = addr;
+//   int numAttempts = 0;
+//   int i;
+//   do
+//   {
+//     if (addr >= KERNBASE)
+//     {
+//       addr = MMAPBASE;
+//     }
+//     // cprintf("addr: %x\n", addr);
+
+//     //     cprintf("addr good\n");
+
+//     // Allocate physical memory and map it to the virtual address space
+//     //   cprintf("addr: %x\n", addr);
+//     for (i = 0; i < roundLength; i += PGSIZE)
+//     {
+//       char *mem = kalloc();
+//       if (mem == 0)
+//       {
+//         cprintf("mem invalid\n");
+//         return -1;
+//       }
+//       //      cprintf("kalloc good\n");
+
+//       if (mappages(pgdir, (void *)addr + i, PGSIZE, V2P(mem), PTE_W | PTE_U) < 0)
+//       {
+//         //    cprintf("mappages failed\n");
+//         for (uint j = 0; j < i; j += PGSIZE)
+//         {
+//           // cprintf("i: %d, j: %d\n", i, j);
+//           pte_t *pte = walkpgdir(pgdir, (void *)(addr + (j)), 0); // modify page tables to make pages unaccessable, third argument indicates that a new page will not be created if a page is not found
+//           kfree(P2V(PTE_ADDR(*pte)));
+//           *pte = 0;
+//         }
+
+//         break;
+//       }
+//       else if (i >= length - PGSIZE)
+//       {
+//         goto createMap;
+//       }
+
+//       //   cprintf("page %p good\n", i);
+//     }
+
+//     // memory successfully added bc no errors
+//     numAttempts++;
+//     if (hashSearch(addr) == 0)
+//       addr += 0x1000;
+//     else
+//     {
+//       addr += hashSearch(addr)->numPages * PGSIZE;
+//     }
+//     //  cprintf("addr: %x, length:%d\n", addr, length);
+//     // cprintf("addr: %x, length:%d\n", addr, length / PGSIZE);
+
+//   } while (addr != beginAddr);
+
+//   cprintf("hello\n");
+//   return -1;
+// createMap:
+//   if (!(flags & MAP_ANONYMOUS))
+//   {
+
+//     int readBytes = fileread(file, (void *)addr, length);
+//     if (readBytes < 0)
+//     {
+//       // Handle read failure
+//       return FAILED;
+//     }
+//   }
+createMap:
+  cprintf("numpages %d\n", roundLength / PGSIZE);
+  hashInsert(addr, length, (roundLength / PGSIZE), fd, flags);
+  //   cprintf("addr: %x, length:%d\n", addr, length / PGSIZE);
+  return addr;
+  //  }
 }
 
 int wunmap(uint addr)
@@ -406,7 +404,7 @@ int wunmap(uint addr)
   memHashNode *node = hashSearch(addr);
 
   if (node == 0)
-    return -1; // no memory at this starting address
+    return FAILED; // no memory at this starting address
 
   for (uint i = 0; i < node->numPages; ++i)
   {
@@ -445,6 +443,8 @@ int getwmapinfo(struct wmapinfo *wminfo)
   {
     initHashTable();
     hashInit = 0;
+    memset(wminfo, 0, sizeof(struct wmapinfo));
+    return 0;
   }
   int pageCount = 0;
   memset(wminfo, 0, sizeof(struct wmapinfo));
@@ -454,19 +454,65 @@ int getwmapinfo(struct wmapinfo *wminfo)
     {
       wminfo->addr[pageCount] = table[i].startAddress;
       wminfo->length[pageCount] = table[i].length;
-      wminfo->n_loaded_pages[pageCount++] = table[i].numPages;
+      int numLoadedPages = 0;
+      cprintf("length: %d\n", table[i].numPages);
+      for (int j = 0; j < table[i].numPages; j++)
+      {
+
+        if (table[i].loaded[j] == 1)
+        {
+          numLoadedPages++;
+        }
+      }
+      wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
+      cprintf("Num loaded pages: %d\n", numLoadedPages);
       wminfo->total_mmaps += 1;
       memHashNode *node = table[i].next;
       while (node != 0)
       {
         wminfo->addr[pageCount] = node->startAddress;
         wminfo->length[pageCount] = node->length;
-        wminfo->n_loaded_pages[pageCount++] = node->numPages;
+        numLoadedPages = 0;
+        for (int j = 0; j < node->numPages; j++)
+        {
+          if (node->loaded[j] == 1)
+          {
+            numLoadedPages++;
+          }
+        }
+        wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
         wminfo->total_mmaps += 1;
         node = node->next;
       }
     }
   }
+  return 0;
+}
+
+memHashNode *pageInMappings(int address)
+{
+  memHashNode *node = hashSearch(address);
+  if (node != 0)
+  {
+    return node;
+  }
+  else
+  {
+    for (int i = 0; i < MEM_HASH_SIZE; i++)
+    {
+      node = &table[i];
+
+      while (node != 0)
+      {
+        if (node->startAddress <= address && address < node->startAddress + node->numPages * PGSIZE)
+        {
+          return node;
+        }
+        node = node->next;
+      }
+    }
+  }
+
   return 0;
 }
 
