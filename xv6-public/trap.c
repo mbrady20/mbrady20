@@ -78,9 +78,9 @@ void trap(struct trapframe *tf)
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
-
+  // page fault occured
   case T_PGFLT:
-    int pageAddr = rcr2();
+    int pageAddr = rcr2(); // address of the page that caused the page fault
     memHashNode *node = pageInMappings(pageAddr);
     pde_t *pgdir = myproc()->pgdir;
 
@@ -88,39 +88,39 @@ void trap(struct trapframe *tf)
     {
       int offset = pageAddr - node->startAddress;
       offset = offset - (offset % PGSIZE);
-      pageAddr = node->startAddress + offset;
+      pageAddr = node->startAddress + offset; // page address aligned to PGSIZE
 
       if (node->loaded[offset / PGSIZE] == 0)
       {
 
-        if (node->flags & MAP_ANONYMOUS)
+        if (node->flags & MAP_ANONYMOUS) // page is anonymous
         {
           char *mem = kalloc();
           if (mem == 0)
-          {
+          { // no memory available
             goto segFault;
           }
-          memset(mem, 0, PGSIZE);
+          memset(mem, 0, PGSIZE); // initialize the page with 0
 
           mappages(pgdir, (void *)pageAddr, PGSIZE, V2P(mem), PTE_W | PTE_U);
-          node->loaded[offset / PGSIZE] = 1;
+          node->loaded[offset / PGSIZE] = 1; // set page loaded array to 1
         }
-        else if (!(node->flags & MAP_ANONYMOUS))
+        else if (!(node->flags & MAP_ANONYMOUS)) // page is file backed
         {
           char *mem = kalloc();
           if (mem == 0)
             goto segFault;
 
-          struct file *f = myproc()->ofile[node->fd];
+          struct file *f = myproc()->ofile[node->fd]; // get the file struct from fd
 
           if (f == 0)
             goto segFault;
-          memset(mem, 0, PGSIZE);
+          memset(mem, 0, PGSIZE); // set page to 0
 
-          fileread(f, mem, PGSIZE);
+          fileread(f, mem, PGSIZE); // read memory from file to mem
 
           mappages(pgdir, (void *)pageAddr, PGSIZE, V2P(mem), PTE_W | PTE_U);
-          node->loaded[offset / PGSIZE] = 1;
+          node->loaded[offset / PGSIZE] = 1; // set page loaded array to 1
         }
       }
     }
