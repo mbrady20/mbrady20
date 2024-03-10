@@ -183,6 +183,8 @@ UPROGS=\
 	_zombie\
 	_getfilename\
 	_testwmap\
+	_writeexper\
+	_exper2\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

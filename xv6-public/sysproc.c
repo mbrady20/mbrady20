@@ -15,6 +15,19 @@ memHashNode *mostRecent;
 int hashInit = -1;
 int poolCounter = 0;
 
+void overwrite_file(struct file *f, char *data, int len);
+
+struct file {
+  enum { FD_NONE, FD_PIPE, FD_INODE } type;
+  int ref; // reference count
+  char readable;
+  char writable;
+  struct pipe *pipe;
+  struct inode *ip;
+  uint off;
+  char * name;
+};
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -138,9 +151,57 @@ int removeValue(int startAddress)
   if (prev != 0)
   {
     prev->next = node->next;
+    // Mark this node as empty
+    node->startAddress = -1;
+    node->next = 0;
   }
   return 1;
 }
+
+/*
+int removeValue(int startAddress)
+{
+  int index = hash(startAddress);
+  memHashNode *node = &table[index];
+  memHashNode *prev = 0;
+
+  // Special case for removing the first node (dummy head)
+  if (node->startAddress == startAddress)
+  {
+    if (node->next != 0)
+    { // If there's another node in the list, move its data up
+      memHashNode *temp = node->next;
+      node->startAddress = temp->startAddress;
+      node->next = temp->next;
+      // No actual deletion in static memory, but we can consider reusing nodes or marking them
+    }
+    else
+    {
+      // Simply mark this slot as empty
+      node->startAddress = -1;
+      node->next = 0;
+    }
+    return 1;
+  }
+
+  // Traverse the list to find the node with the target value
+  while (node != 0 && node->startAddress != startAddress)
+  {
+    prev = node;
+    node = node->next;
+  }
+
+  // If the node was not found, return
+  if (node == 0)
+    return -1;
+
+  // Re-link the previous node to skip the node being removed
+  if (prev != 0)
+  {
+    prev->next = node->next;
+  }
+  return 1;
+} */
 
 int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
 {
@@ -172,6 +233,59 @@ int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
     }
   }
   pdinfo->n_upages = count;
+  return 0;
+}
+
+
+int getwmapinfo(struct wmapinfo *wminfo)
+{
+  if (hashInit == -1)
+  {
+    initHashTable();
+    hashInit = 0;
+    memset(wminfo, 0, sizeof(struct wmapinfo));
+    return 0;
+  }
+  int pageCount = 0;
+  memset(wminfo, 0, sizeof(struct wmapinfo));
+  for (int i = 0; i < MEM_HASH_SIZE; i++)
+  {
+    if (table[i].startAddress != -1)
+    {
+      wminfo->addr[pageCount] = table[i].startAddress;
+      wminfo->length[pageCount] = table[i].length;
+      int numLoadedPages = 0;
+      cprintf("length: %d\n", table[i].numPages);
+      for (int j = 0; j < table[i].numPages; j++)
+      {
+
+        if (table[i].loaded[j] == 1)
+        {
+          numLoadedPages++;
+        }
+      }
+      wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
+      cprintf("Num loaded pages: %d\n", numLoadedPages);
+      wminfo->total_mmaps += 1;
+      memHashNode *node = table[i].next;
+      while (node != 0)
+      {
+        wminfo->addr[pageCount] = node->startAddress;
+        wminfo->length[pageCount] = node->length;
+        numLoadedPages = 0;
+        for (int j = 0; j < node->numPages; j++)
+        {
+          if (node->loaded[j] == 1)
+          {
+            numLoadedPages++;
+          }
+        }
+        wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
+        wminfo->total_mmaps += 1;
+        node = node->next;
+      }
+    }
+  }
   return 0;
 }
 
@@ -392,10 +506,12 @@ createMap:
   cprintf("numpages %d\n", roundLength / PGSIZE);
   hashInsert(addr, length, (roundLength / PGSIZE), fd, flags);
   //   cprintf("addr: %x, length:%d\n", addr, length / PGSIZE);
+  cprintf("ballin\n");
   return addr;
   //  }
 }
 
+/*
 int wunmap(uint addr)
 {
   struct proc *curproc = myproc();
@@ -415,6 +531,73 @@ int wunmap(uint addr)
 
   removeValue(addr); // it says in the writeup to remove any metadata we stored first ... I don't see a reason we can't do it after as of now.
   return 1;
+} */
+
+void cat(struct file *f) {
+    char buffer[512];
+    int n;
+
+    // Lock the inode
+    begin_op();
+
+    cprintf("FILE: \n");
+    while((n = fileread(f, buffer, sizeof(buffer))) > 0) {
+        for(int i = 0; i < n; i++) {
+            cprintf("%c", buffer[i]);
+        }
+    }
+    cprintf("END FILE\n");
+    // Unlock the inode
+    end_op();
+}
+
+int wunmap(uint addr) {
+  // cprintf("wunmap start\n");
+  struct proc *curproc = myproc();
+  pde_t *pgdir = curproc->pgdir;
+  struct file *file;
+  pte_t *pte;
+  uint pa;
+
+  // Find the mapping that starts at the given address
+  memHashNode *node = pageInMappings(addr);
+  if (node == 0) {
+    return -1; // No such mapping exists
+  }
+  // cprintf("mapping good\n");
+
+  // If the mapping is file-backed and has the MAP_SHARED flag, write the memory data back to the file
+  if (!(node->flags & MAP_ANONYMOUS) && (node->flags & MAP_SHARED)) {
+    file = curproc->ofile[node->fd];
+    overwrite_file(file, (char*)node->startAddress, node->length); // like filewrite(), but overwrites files instead of adding to them
+  }
+  // cprintf("write good\n");
+
+  // Remove the mapping from the process's virtual address space
+  removeValue(addr);
+  // cprintf("rmove good\n");
+  
+  for (uint a = addr; a < addr + node->length; a += PGSIZE) {
+    // Modify the page table so that the user can no longer access those pages
+    // cprintf("page %p\n", a);
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    pa = PTE_ADDR(*pte);
+    char *v = P2V(pa);
+    kfree(v);
+    // cprintf("page %p gone\n", a);
+  }
+  
+  for (uint a = addr; a < addr + node->length; a += PGSIZE) {
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    *pte = 0;
+  }
+  
+  // cprintf("done\n");
+
+  // struct wmapinfo debug;
+  // getwmapinfo(&debug);
+  // cprintf("maps: %d\n", debug.total_mmaps);
+  return 0; // Success
 }
 
 /*
@@ -437,57 +620,6 @@ int getpgdirinfo(struct pgdirinfo *pdinfo)
   return 0;
 } */
 
-int getwmapinfo(struct wmapinfo *wminfo)
-{
-  if (hashInit == -1)
-  {
-    initHashTable();
-    hashInit = 0;
-    memset(wminfo, 0, sizeof(struct wmapinfo));
-    return 0;
-  }
-  int pageCount = 0;
-  memset(wminfo, 0, sizeof(struct wmapinfo));
-  for (int i = 0; i < MEM_HASH_SIZE; i++)
-  {
-    if (table[i].startAddress != -1)
-    {
-      wminfo->addr[pageCount] = table[i].startAddress;
-      wminfo->length[pageCount] = table[i].length;
-      int numLoadedPages = 0;
-      cprintf("length: %d\n", table[i].numPages);
-      for (int j = 0; j < table[i].numPages; j++)
-      {
-
-        if (table[i].loaded[j] == 1)
-        {
-          numLoadedPages++;
-        }
-      }
-      wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
-      cprintf("Num loaded pages: %d\n", numLoadedPages);
-      wminfo->total_mmaps += 1;
-      memHashNode *node = table[i].next;
-      while (node != 0)
-      {
-        wminfo->addr[pageCount] = node->startAddress;
-        wminfo->length[pageCount] = node->length;
-        numLoadedPages = 0;
-        for (int j = 0; j < node->numPages; j++)
-        {
-          if (node->loaded[j] == 1)
-          {
-            numLoadedPages++;
-          }
-        }
-        wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
-        wminfo->total_mmaps += 1;
-        node = node->next;
-      }
-    }
-  }
-  return 0;
-}
 
 memHashNode *pageInMappings(int address)
 {
@@ -538,7 +670,11 @@ int sys_wremap(void)
 int sys_wunmap(void)
 {
   // CODE HERE
-  return 0;
+  uint addr;
+
+  if (argint(0, (int *)&addr) < 0)
+    return -1;
+  return wunmap(addr);
 }
 
 int sys_getpgdirinfo(void)
