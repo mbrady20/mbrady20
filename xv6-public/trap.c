@@ -31,6 +31,7 @@ void idtinit(void)
   lidt(idt, sizeof(idt));
 }
 
+void fileseek(struct file *f, int offset);
 // PAGEBREAK: 41
 void trap(struct trapframe *tf)
 {
@@ -92,16 +93,15 @@ void trap(struct trapframe *tf)
 
       if (node->loaded[offset / PGSIZE] == 0)
       {
+        char *mem = kalloc();
+        if (mem == 0)
+        { // no memory available
+          goto segFault;
+        }
+        memset(mem, 0, PGSIZE); // initialize the page with 0
 
         if (node->flags & MAP_ANONYMOUS) // page is anonymous
         {
-          char *mem = kalloc();
-          if (mem == 0)
-          { // no memory available
-            goto segFault;
-          }
-          memset(mem, 0, PGSIZE); // initialize the page with 0
-
           mappages(pgdir, (void *)pageAddr, PGSIZE, V2P(mem), PTE_W | PTE_U);
           node->loaded[offset / PGSIZE] = 1; // set page loaded array to 1
         }
@@ -115,9 +115,15 @@ void trap(struct trapframe *tf)
 
           if (f == 0)
             goto segFault;
+          
           memset(mem, 0, PGSIZE); // set page to 0
 
-          fileread(f, mem, PGSIZE); // read memory from file to mem
+          // fileseek(f, 0); // set the offset to the start of the file
+          int n = fileread(f, mem, PGSIZE); // read memory from file to mem
+
+          // If the file is smaller than a page, zero out the rest of the page
+          if (n < PGSIZE)
+            memset(mem + n, 0, PGSIZE - n);
 
           mappages(pgdir, (void *)pageAddr, PGSIZE, V2P(mem), PTE_W | PTE_U);
           node->loaded[offset / PGSIZE] = 1; // set page loaded array to 1

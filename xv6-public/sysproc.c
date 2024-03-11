@@ -533,24 +533,6 @@ int wunmap(uint addr)
   return 1;
 } */
 
-void cat(struct file *f) {
-    char buffer[512];
-    int n;
-
-    // Lock the inode
-    begin_op();
-
-    cprintf("FILE: \n");
-    while((n = fileread(f, buffer, sizeof(buffer))) > 0) {
-        for(int i = 0; i < n; i++) {
-            cprintf("%c", buffer[i]);
-        }
-    }
-    cprintf("END FILE\n");
-    // Unlock the inode
-    end_op();
-}
-
 int wunmap(uint addr) {
   // cprintf("wunmap start\n");
   struct proc *curproc = myproc();
@@ -579,9 +561,12 @@ int wunmap(uint addr) {
   
   for (uint a = addr; a < addr + node->length; a += PGSIZE) {
     // Modify the page table so that the user can no longer access those pages
-    // cprintf("page %p\n", a);
+    cprintf("page %x\n", a);
     pte = walkpgdir(pgdir, (char*)a, 0);
+    cprintf("pte: %d\n", pte);
+    if (pte <= 0) {break;}
     pa = PTE_ADDR(*pte);
+    if (pa <= 0) {break;}
     char *v = P2V(pa);
     kfree(v);
     // cprintf("page %p gone\n", a);
@@ -661,10 +646,91 @@ int sys_wmap(void)
   return wmap(addr, length, flags, fd);
 }
 
+int wunmap_partial(uint addr, int length) {
+  struct proc *curproc = myproc();
+  pde_t *pgdir = curproc->pgdir;
+  pte_t *pte;
+
+  for (uint a = addr; a < addr + length; a += PGSIZE) {
+    pte = walkpgdir(pgdir, (char*)a, 0);
+    if (pte == 0) {
+      continue; // Page was not present
+    }
+    *pte = 0;
+  }
+
+  return 0; // Success
+}
+
+int can_grow_in_place(uint oldaddr, int oldsize, int newsize) {
+  // Check each page in the new range
+  for (uint a = oldaddr + oldsize; a < oldaddr + newsize; a += PGSIZE) {
+    // If the page is in any mapping, return 0
+    if (pageInMappings(a) != 0) {
+      return 0; // Page is already in use
+    }
+  }
+
+  return 1; // All pages are available
+}
+
+uint wremap(uint oldaddr, int oldsize, int newsize, int flags) {
+  memHashNode *node = pageInMappings(oldaddr);
+
+  // Check if the old mapping exists
+  if (node == 0 || node->length != oldsize) {
+    return -1; // No such mapping exists or size mismatch
+  }
+
+  // If newsize is less than oldsize, shrink the mapping
+  if (newsize < oldsize) {
+    cprintf("shrink!\n");
+    // Unmap the pages that are no longer needed
+    wunmap_partial(oldaddr + newsize, oldsize - newsize);
+    node->length = newsize;
+    cprintf("size: %x\n", node->length);
+    cprintf("shrink done!\n");
+    return oldaddr;
+  }
+
+  // If newsize is greater than oldsize, try to grow the mapping
+  if (newsize > oldsize) {
+    cprintf("grow!\n");
+    // Try to grow in-place
+    if (can_grow_in_place(oldaddr, oldsize, newsize)) {
+      node->length = newsize;
+      cprintf("grow done!\n");
+      return oldaddr;
+    }
+
+    // If can't grow in-place and MREMAP_MAYMOVE is set, move the mapping
+    if (flags & MREMAP_MAYMOVE) {
+      cprintf("move it!\n");
+      uint newaddr = wmap(MMAPBASE, newsize, node->flags - MAP_FIXED, node->fd);
+      if (newaddr != -1) {
+        cprintf("moving it!\n");
+        memmove((void*)newaddr, (void*)oldaddr, oldsize);
+        wunmap(oldaddr);
+        cprintf("moved it!\n");
+        return newaddr;
+      }
+    }
+  }
+
+  // If we reach here, wremap failed
+  return -1;
+}
+
 int sys_wremap(void)
 {
   // CODE HERE
-  return 0;
+  uint oldaddr;
+  int oldsize, newsize, flags;
+  
+  if (argint(0, (int *)&oldaddr) < 0 || argint(1, &oldsize) < 0 ||
+      argint(2, &newsize) < 0 || argint(3, &flags) < 0)
+    return -1;
+  return wremap(oldaddr, oldsize, newsize, flags);
 }
 
 int sys_wunmap(void)
