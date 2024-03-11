@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "wmap.h"
 // #include "file.h"
 // #include <stddef.h>
 
@@ -188,6 +189,9 @@ growproc(int n)
   return 0;
 }
 
+int forkHelper(void);
+int exitHelper(void);
+
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
@@ -226,6 +230,9 @@ fork(void)
 
   pid = np->pid;
 
+  // Copy memory mappings from parent to child
+  forkHelper();
+
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
@@ -233,7 +240,7 @@ fork(void)
   release(&ptable.lock);
 
   return pid;
-}
+} 
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
@@ -255,6 +262,8 @@ exit(void)
       curproc->ofile[fd] = 0;
     }
   }
+
+  exitHelper();
 
   begin_op();
   iput(curproc->cwd);

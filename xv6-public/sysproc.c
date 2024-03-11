@@ -765,7 +765,32 @@ int sys_getwmapinfo(void)
 
 int sys_fork(void)
 {
-  return fork();
+  int pid = fork();
+
+  return pid;
+}
+
+int forkHelper(void) {
+  for (int i = 0; i < MEM_HASH_SIZE; i++) {
+    memHashNode *node = &table[i];
+    while (node != 0 && node->startAddress != -1) {
+      hashInsert(node->startAddress, node->length, node->numPages, node->fd, node->flags);
+      node = node->next;
+    }
+  }
+  return 0;
+}
+
+int exitHelper(void) {
+  // Remove all memory mappings
+  for (int i = 0; i < MEM_HASH_SIZE; i++) {
+    memHashNode *node = &table[i];
+    while (node != 0 && node->startAddress != -1) {
+      removeValue(node->startAddress);
+      node = node->next;
+    }
+  }
+  return 0;
 }
 
 int sys_getfilename(void)
@@ -796,6 +821,13 @@ int sys_getfilename(void)
 
 int sys_exit(void)
 {
+  // Remove all memory mappings
+  memHashNode *node = table;
+  while (node != 0) {
+    memHashNode *next = node->next;
+    wunmap(node->startAddress);
+    node = next;
+  }
   exit();
   return 0; // not reached
 }
