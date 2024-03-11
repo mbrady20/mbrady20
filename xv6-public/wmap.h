@@ -37,7 +37,7 @@ typedef struct memHashNode
     int length;
     int fd;
     int flags;
-    int loaded[12050];
+    int loadedPages;
     struct memHashNode *next;
 } memHashNode;
 

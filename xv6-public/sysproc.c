@@ -17,15 +17,21 @@ int poolCounter = 0;
 
 void overwrite_file(struct file *f, char *data, int len);
 
-struct file {
-  enum { FD_NONE, FD_PIPE, FD_INODE } type;
+struct file
+{
+  enum
+  {
+    FD_NONE,
+    FD_PIPE,
+    FD_INODE
+  } type;
   int ref; // reference count
   char readable;
   char writable;
   struct pipe *pipe;
   struct inode *ip;
   uint off;
-  char * name;
+  char *name;
 };
 
 // Fetch the nth word-sized system call argument as a file descriptor
@@ -74,8 +80,7 @@ void hashInsert(uint startAddress, int length, int numPages, int fd, int flags)
     table[index].numPages = numPages;
     table[index].fd = fd;
     table[index].flags = flags;
-    for (int i = 0; i < 12050; i++)
-      table[index].loaded[i] = 0;
+    table[index].loadedPages = 0;
     mostRecent = &table[index];
     // No need to allocate for the first item as it uses the table's array directly
   }
@@ -89,8 +94,7 @@ void hashInsert(uint startAddress, int length, int numPages, int fd, int flags)
     newNode->fd = fd;
     newNode->flags = flags;
     newNode->next = table[index].next;
-    for (int i = 0; i < 12050; i++)
-      newNode->loaded[i] = 0;
+    newNode->loadedPages = 0;
     table[index].next = newNode;
     mostRecent = newNode;
   }
@@ -236,7 +240,6 @@ int getpgdirinfo(struct proc *p, struct pgdirinfo *pdinfo)
   return 0;
 }
 
-
 int getwmapinfo(struct wmapinfo *wminfo)
 {
   if (hashInit == -1)
@@ -254,33 +257,14 @@ int getwmapinfo(struct wmapinfo *wminfo)
     {
       wminfo->addr[pageCount] = table[i].startAddress;
       wminfo->length[pageCount] = table[i].length;
-      int numLoadedPages = 0;
-      cprintf("length: %d\n", table[i].numPages);
-      for (int j = 0; j < table[i].numPages; j++)
-      {
-
-        if (table[i].loaded[j] == 1)
-        {
-          numLoadedPages++;
-        }
-      }
-      wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
-      cprintf("Num loaded pages: %d\n", numLoadedPages);
+      wminfo->n_loaded_pages[pageCount++] = table[i].loadedPages;
       wminfo->total_mmaps += 1;
       memHashNode *node = table[i].next;
       while (node != 0)
       {
         wminfo->addr[pageCount] = node->startAddress;
         wminfo->length[pageCount] = node->length;
-        numLoadedPages = 0;
-        for (int j = 0; j < node->numPages; j++)
-        {
-          if (node->loaded[j] == 1)
-          {
-            numLoadedPages++;
-          }
-        }
-        wminfo->n_loaded_pages[pageCount++] = numLoadedPages;
+        wminfo->n_loaded_pages[pageCount++] = node->loadedPages;
         wminfo->total_mmaps += 1;
         node = node->next;
       }
@@ -533,7 +517,8 @@ int wunmap(uint addr)
   return 1;
 } */
 
-int wunmap(uint addr) {
+int wunmap(uint addr)
+{
   // cprintf("wunmap start\n");
   struct proc *curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
@@ -543,40 +528,50 @@ int wunmap(uint addr) {
 
   // Find the mapping that starts at the given address
   memHashNode *node = pageInMappings(addr);
-  if (node == 0) {
+  if (node == 0)
+  {
     return -1; // No such mapping exists
   }
   // cprintf("mapping good\n");
 
   // If the mapping is file-backed and has the MAP_SHARED flag, write the memory data back to the file
-  if (!(node->flags & MAP_ANONYMOUS) && (node->flags & MAP_SHARED)) {
+  if (!(node->flags & MAP_ANONYMOUS) && (node->flags & MAP_SHARED))
+  {
     file = curproc->ofile[node->fd];
-    overwrite_file(file, (char*)node->startAddress, node->length); // like filewrite(), but overwrites files instead of adding to them
+    overwrite_file(file, (char *)node->startAddress, node->length); // like filewrite(), but overwrites files instead of adding to them
   }
   // cprintf("write good\n");
 
   // Remove the mapping from the process's virtual address space
   removeValue(addr);
   // cprintf("rmove good\n");
-  
-  for (uint a = addr; a < addr + node->length; a += PGSIZE) {
+
+  for (uint a = addr; a < addr + node->length; a += PGSIZE)
+  {
     // Modify the page table so that the user can no longer access those pages
     cprintf("page %x\n", a);
-    pte = walkpgdir(pgdir, (char*)a, 0);
+    pte = walkpgdir(pgdir, (char *)a, 0);
     cprintf("pte: %d\n", pte);
-    if (pte <= 0) {break;}
+    if (pte <= 0)
+    {
+      break;
+    }
     pa = PTE_ADDR(*pte);
-    if (pa <= 0) {break;}
+    if (pa <= 0)
+    {
+      break;
+    }
     char *v = P2V(pa);
     kfree(v);
     // cprintf("page %p gone\n", a);
   }
-  
-  for (uint a = addr; a < addr + node->length; a += PGSIZE) {
-    pte = walkpgdir(pgdir, (char*)a, 0);
+
+  for (uint a = addr; a < addr + node->length; a += PGSIZE)
+  {
+    pte = walkpgdir(pgdir, (char *)a, 0);
     *pte = 0;
   }
-  
+
   // cprintf("done\n");
 
   // struct wmapinfo debug;
@@ -604,7 +599,6 @@ int getpgdirinfo(struct pgdirinfo *pdinfo)
 
   return 0;
 } */
-
 
 memHashNode *pageInMappings(int address)
 {
@@ -646,14 +640,17 @@ int sys_wmap(void)
   return wmap(addr, length, flags, fd);
 }
 
-int wunmap_partial(uint addr, int length) {
+int wunmap_partial(uint addr, int length)
+{
   struct proc *curproc = myproc();
   pde_t *pgdir = curproc->pgdir;
   pte_t *pte;
 
-  for (uint a = addr; a < addr + length; a += PGSIZE) {
-    pte = walkpgdir(pgdir, (char*)a, 0);
-    if (pte == 0) {
+  for (uint a = addr; a < addr + length; a += PGSIZE)
+  {
+    pte = walkpgdir(pgdir, (char *)a, 0);
+    if (pte == 0)
+    {
       continue; // Page was not present
     }
     *pte = 0;
@@ -662,11 +659,14 @@ int wunmap_partial(uint addr, int length) {
   return 0; // Success
 }
 
-int can_grow_in_place(uint oldaddr, int oldsize, int newsize) {
+int can_grow_in_place(uint oldaddr, int oldsize, int newsize)
+{
   // Check each page in the new range
-  for (uint a = oldaddr + oldsize; a < oldaddr + newsize; a += PGSIZE) {
+  for (uint a = oldaddr + oldsize; a < oldaddr + newsize; a += PGSIZE)
+  {
     // If the page is in any mapping, return 0
-    if (pageInMappings(a) != 0) {
+    if (pageInMappings(a) != 0)
+    {
       return 0; // Page is already in use
     }
   }
@@ -674,16 +674,19 @@ int can_grow_in_place(uint oldaddr, int oldsize, int newsize) {
   return 1; // All pages are available
 }
 
-uint wremap(uint oldaddr, int oldsize, int newsize, int flags) {
+uint wremap(uint oldaddr, int oldsize, int newsize, int flags)
+{
   memHashNode *node = pageInMappings(oldaddr);
 
   // Check if the old mapping exists
-  if (node == 0 || node->length != oldsize) {
+  if (node == 0 || node->length != oldsize)
+  {
     return -1; // No such mapping exists or size mismatch
   }
 
   // If newsize is less than oldsize, shrink the mapping
-  if (newsize < oldsize) {
+  if (newsize < oldsize)
+  {
     cprintf("shrink!\n");
     // Unmap the pages that are no longer needed
     wunmap_partial(oldaddr + newsize, oldsize - newsize);
@@ -694,22 +697,26 @@ uint wremap(uint oldaddr, int oldsize, int newsize, int flags) {
   }
 
   // If newsize is greater than oldsize, try to grow the mapping
-  if (newsize > oldsize) {
+  if (newsize > oldsize)
+  {
     cprintf("grow!\n");
     // Try to grow in-place
-    if (can_grow_in_place(oldaddr, oldsize, newsize)) {
+    if (can_grow_in_place(oldaddr, oldsize, newsize))
+    {
       node->length = newsize;
       cprintf("grow done!\n");
       return oldaddr;
     }
 
     // If can't grow in-place and MREMAP_MAYMOVE is set, move the mapping
-    if (flags & MREMAP_MAYMOVE) {
+    if (flags & MREMAP_MAYMOVE)
+    {
       cprintf("move it!\n");
       uint newaddr = wmap(MMAPBASE, newsize, node->flags - MAP_FIXED, node->fd);
-      if (newaddr != -1) {
+      if (newaddr != -1)
+      {
         cprintf("moving it!\n");
-        memmove((void*)newaddr, (void*)oldaddr, oldsize);
+        memmove((void *)newaddr, (void *)oldaddr, oldsize);
         wunmap(oldaddr);
         cprintf("moved it!\n");
         return newaddr;
@@ -726,7 +733,7 @@ int sys_wremap(void)
   // CODE HERE
   uint oldaddr;
   int oldsize, newsize, flags;
-  
+
   if (argint(0, (int *)&oldaddr) < 0 || argint(1, &oldsize) < 0 ||
       argint(2, &newsize) < 0 || argint(3, &flags) < 0)
     return -1;
@@ -770,10 +777,13 @@ int sys_fork(void)
   return pid;
 }
 
-int forkHelper(void) {
-  for (int i = 0; i < MEM_HASH_SIZE; i++) {
+int forkHelper(void)
+{
+  for (int i = 0; i < MEM_HASH_SIZE; i++)
+  {
     memHashNode *node = &table[i];
-    while (node != 0 && node->startAddress != -1) {
+    while (node != 0 && node->startAddress != -1)
+    {
       hashInsert(node->startAddress, node->length, node->numPages, node->fd, node->flags);
       node = node->next;
     }
@@ -781,11 +791,14 @@ int forkHelper(void) {
   return 0;
 }
 
-int exitHelper(void) {
+int exitHelper(void)
+{
   // Remove all memory mappings
-  for (int i = 0; i < MEM_HASH_SIZE; i++) {
+  for (int i = 0; i < MEM_HASH_SIZE; i++)
+  {
     memHashNode *node = &table[i];
-    while (node != 0 && node->startAddress != -1) {
+    while (node != 0 && node->startAddress != -1)
+    {
       removeValue(node->startAddress);
       node = node->next;
     }
@@ -823,7 +836,8 @@ int sys_exit(void)
 {
   // Remove all memory mappings
   memHashNode *node = table;
-  while (node != 0) {
+  while (node != 0)
+  {
     memHashNode *next = node->next;
     wunmap(node->startAddress);
     node = next;
